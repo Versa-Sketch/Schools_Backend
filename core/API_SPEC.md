@@ -19,14 +19,55 @@ This app owns shared authentication, school context, common lookup data, announc
 ```
 
 - Object response: a single JSON object.
-- Error response:
+
+## Common Error API
+
+All API errors must use this common response format:
 
 ```json
 {
-  "detail": "Human readable error message.",
-  "errors": {
-    "field_name": ["Field specific message."]
-  }
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "details": "Human readable error message."
+}
+```
+
+Fields:
+
+- `success`: always `false` for error responses.
+- `code`: stable machine-readable error code.
+- `details`: human-readable explanation.
+
+Common error codes:
+
+- `AUTHENTICATION_FAILED`
+- `PERMISSION_DENIED`
+- `NOT_FOUND`
+- `VALIDATION_ERROR`
+- `SCHOOL_SCOPE_ERROR`
+- `ROLE_NOT_ALLOWED`
+- `PARENT_QUERY_DISABLED`
+- `ATTENDANCE_ALREADY_CONFIRMED`
+- `INVALID_ATTENDANCE_SLOT`
+- `UNLINKED_STUDENT`
+- `UPLOAD_FAILED`
+- `EXAM_MODEL_NOT_IMPLEMENTED`
+
+Examples:
+
+```json
+{
+  "success": false,
+  "code": "PERMISSION_DENIED",
+  "details": "You do not have permission to access this resource."
+}
+```
+
+```json
+{
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "details": "The selected section does not belong to your school."
 }
 ```
 
@@ -63,8 +104,8 @@ Response:
 
 Validation:
 
-- Return `401` for invalid credentials.
-- Return `403` if the user is inactive.
+- Use `AUTHENTICATION_FAILED` for invalid credentials.
+- Use `PERMISSION_DENIED` if the user is inactive.
 - Include the user's school only when the user has a profile linked to a school.
 
 ### `POST /api/v1/auth/refresh/`
@@ -101,7 +142,7 @@ Response:
 
 ```json
 {
-  "detail": "Logged out successfully."
+  "success": true
 }
 ```
 
@@ -318,12 +359,12 @@ Response:
 
 ### `GET /api/v1/announcements/{id}/`
 
-Returns announcement detail with targets and attachments when visible to the current user.
+Returns the full announcement record with targets and attachments when visible to the current user.
 
-Errors:
+Common errors:
 
-- `404` if the announcement does not exist in the current school.
-- `403` if the announcement exists but is not visible to the current user.
+- `NOT_FOUND`: announcement does not exist in the current school.
+- `PERMISSION_DENIED`: announcement exists but is not visible to the current user.
 
 ## Shared Models
 

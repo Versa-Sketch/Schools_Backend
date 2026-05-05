@@ -6,12 +6,24 @@ This app owns parent-facing APIs for linked students, attendance, announcements,
 
 All endpoints use `/api/v1/`, require JWT authentication, and require role `PARENT`.
 
+## Error Format
+
+All errors follow the common error format defined in `core/API_SPEC.md`:
+
+```json
+{
+  "success": false,
+  "code": "UNLINKED_STUDENT",
+  "details": "This student is not linked to the authenticated parent."
+}
+```
+
 ## Permissions
 
 - Parents can only access students linked through `ParentProfile.students`.
 - Parents cannot access unlinked students, even within the same school.
 - Parents can create and reply to queries only when parent queries are enabled for the school.
-- Cross-school and unlinked student access must return `403` or `404`.
+- Cross-school and unlinked student access uses `NOT_FOUND`, `PERMISSION_DENIED`, or `UNLINKED_STUDENT`.
 
 ## Profile And Linked Students
 
@@ -342,7 +354,7 @@ Validation:
 - Parent queries must be enabled in `SchoolConfiguration`.
 - `student_id` must be linked to the parent.
 - Student section must have a class teacher.
-- If parent queries are disabled, return `403`.
+- If parent queries are disabled, use `PARENT_QUERY_DISABLED`.
 
 ### `GET /api/v1/parent/queries/`
 
@@ -379,7 +391,7 @@ Response:
 
 ### `GET /api/v1/parent/queries/{id}/`
 
-Returns query detail with replies.
+Returns the full query record with replies.
 
 Response:
 
@@ -437,7 +449,7 @@ Validation:
 
 - Query must belong to the parent.
 - Closed queries cannot receive replies unless reopened.
-- If parent queries are disabled, return `403` for new query creation. Existing query history remains readable.
+- If parent queries are disabled, use `PARENT_QUERY_DISABLED` for new query creation. Existing query history remains readable.
 
 ## Parent Test Scenarios
 

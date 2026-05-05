@@ -6,12 +6,24 @@ This app owns teacher workflows: assigned sections, attendance, class teacher an
 
 All endpoints use `/api/v1/`, require JWT authentication, and require role `TEACHER`.
 
+## Error Format
+
+All errors follow the common error format defined in `core/API_SPEC.md`:
+
+```json
+{
+  "success": false,
+  "code": "ATTENDANCE_ALREADY_CONFIRMED",
+  "details": "Confirmed attendance cannot be edited."
+}
+```
+
 ## Permissions
 
 - Teachers can access sections assigned through `TeacherProfile.assigned_sections`.
 - Teachers can access sections where they are set as `Section.class_teacher`.
 - Class teacher announcements, study materials, homework, attendance, and parent queries are section-scoped.
-- Cross-school or unassigned section access returns `403` or `404`.
+- Cross-school or unassigned section access uses `NOT_FOUND` or `PERMISSION_DENIED`.
 
 ## Sections And Students
 

@@ -6,11 +6,23 @@ This app owns student-facing read-only APIs for profile, attendance, announcemen
 
 All endpoints use `/api/v1/`, require JWT authentication, and require role `STUDENT`.
 
+## Error Format
+
+All errors follow the common error format defined in `core/API_SPEC.md`:
+
+```json
+{
+  "success": false,
+  "code": "PERMISSION_DENIED",
+  "details": "Students can only access their own data."
+}
+```
+
 ## Permissions
 
 - Students can only access their own profile and own section data.
 - Students cannot mutate attendance, homework, materials, announcements, exams, or results.
-- Cross-school and other-student access must return `403` or `404`.
+- Cross-school and other-student access uses `NOT_FOUND` or `PERMISSION_DENIED`.
 
 ## Profile
 

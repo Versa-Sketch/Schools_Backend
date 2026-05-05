@@ -6,11 +6,23 @@ This app owns principal-only school administration APIs: configuration, teacher 
 
 All endpoints use `/api/v1/`, require JWT authentication, and require role `PRINCIPAL`.
 
+## Error Format
+
+All errors follow the common error format defined in `core/API_SPEC.md`:
+
+```json
+{
+  "success": false,
+  "code": "PERMISSION_DENIED",
+  "details": "Only principals can access this endpoint."
+}
+```
+
 ## Permissions
 
 - Only authenticated principals can access these endpoints.
 - Every object must belong to the principal's school.
-- Cross-school object IDs must return `404` or `403`.
+- Cross-school object IDs use `NOT_FOUND` or `PERMISSION_DENIED`.
 
 ## School Configuration
 
@@ -113,7 +125,7 @@ Query params:
 
 ### `PATCH /api/v1/principal/teachers/{id}/`
 
-Updates teacher profile details.
+Updates teacher profile fields.
 
 Request:
 
@@ -419,7 +431,7 @@ Analytics may be computed live from attendance, homework, exam marks, and conten
 
 ## Principal Test Scenarios
 
-- Non-principal users receive `403` for all principal endpoints.
+- Non-principal users receive `PERMISSION_DENIED` for all principal endpoints.
 - Configuration updates only affect the current school.
 - Teacher onboarding creates a user with role `TEACHER`.
 - Teacher update rejects cross-school subjects and sections.
