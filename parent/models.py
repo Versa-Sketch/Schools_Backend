@@ -1,8 +1,5 @@
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.db import models
-
-from core.models import ROLE_PARENT
 
 
 class ParentProfile(models.Model):
@@ -25,10 +22,6 @@ class ParentProfile(models.Model):
 
     class Meta:
         ordering = ['name']
-
-    def clean(self):
-        if self.user_id and self.user.role != ROLE_PARENT:
-            raise ValidationError({'user': 'Parent profile requires a parent user role.'})
 
     def __str__(self):
         return self.name

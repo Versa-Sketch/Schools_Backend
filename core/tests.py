@@ -1,14 +1,10 @@
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 
 from core.models import (
-    ATTENDANCE_ONCE,
-    ATTENDANCE_SLOT_AFTERNOON,
     ATTENDANCE_SLOT_MORNING,
-    ATTENDANCE_TWICE,
     ROLE_PARENT,
     ROLE_PRINCIPAL,
     ROLE_STUDENT,
@@ -17,8 +13,6 @@ from core.models import (
     UPLOAD_ROW_STATUS_SUCCESS,
     AcademicClass,
     AttendanceSession,
-    Homework,
-    ParentQuery,
     School,
     SchoolConfiguration,
     Section,
@@ -100,18 +94,6 @@ class RoleProfileTests(TestCase):
         self.assertIn(section, teacher.assigned_sections.all())
         self.assertIn(student, parent.students.all())
 
-    def test_role_profile_rejects_wrong_user_role(self):
-        school = School.objects.create(name='Green Valley School', subdomain='green-valley')
-        profile = TeacherProfile(
-            user=User.objects.create_user(username='not-a-teacher', role=ROLE_PARENT),
-            school=school,
-            name='Teacher One',
-            mobile_number='9000000001',
-        )
-
-        with self.assertRaises(ValidationError):
-            profile.full_clean()
-
 
 class AttendanceModelTests(TestCase):
     def setUp(self):
@@ -147,33 +129,6 @@ class AttendanceModelTests(TestCase):
                 taken_by=self.teacher,
             )
 
-    def test_once_per_day_config_rejects_afternoon_slot(self):
-        self.config.attendance_frequency = ATTENDANCE_ONCE
-        self.config.save()
-        session = AttendanceSession(
-            school=self.school,
-            section=self.section,
-            date=timezone.localdate(),
-            slot=ATTENDANCE_SLOT_AFTERNOON,
-            taken_by=self.teacher,
-        )
-
-        with self.assertRaises(ValidationError):
-            session.full_clean()
-
-    def test_twice_per_day_config_allows_afternoon_slot(self):
-        self.config.attendance_frequency = ATTENDANCE_TWICE
-        self.config.save()
-        session = AttendanceSession(
-            school=self.school,
-            section=self.section,
-            date=timezone.localdate(),
-            slot=ATTENDANCE_SLOT_AFTERNOON,
-            taken_by=self.teacher,
-        )
-
-        session.full_clean()
-
 
 class WorkflowValidationTests(TestCase):
     def setUp(self):
@@ -205,26 +160,6 @@ class WorkflowValidationTests(TestCase):
             mobile_number='9000000002',
         )
         self.parent.students.add(self.student)
-
-    def test_teacher_must_be_assigned_to_homework_section(self):
-        other_teacher = TeacherProfile.objects.create(
-            user=User.objects.create_user(username='other-teacher', role=ROLE_TEACHER),
-            school=self.school,
-            name='Teacher Two',
-            mobile_number='9000000003',
-            primary_subject=self.subject,
-        )
-        homework = Homework(
-            school=self.school,
-            section=self.section,
-            subject=self.subject,
-            assigned_by=other_teacher,
-            description='Read chapter 1',
-            deadline=timezone.now(),
-        )
-
-        with self.assertRaises(ValidationError):
-            homework.full_clean()
 
     def test_bulk_upload_rows_track_success_and_failure(self):
         principal = PrincipalProfile.objects.create(
@@ -258,19 +193,3 @@ class WorkflowValidationTests(TestCase):
 
         self.assertEqual(batch.studentbulkuploadrow_set.count(), 2)
         self.assertEqual(batch.studentbulkuploadrow_set.filter(status=UPLOAD_ROW_STATUS_FAILED).count(), 1)
-
-    def test_parent_query_respects_school_configuration(self):
-        self.config.parent_query_enabled = False
-        self.config.save()
-        query = ParentQuery(
-            school=self.school,
-            parent=self.parent,
-            student=self.student,
-            section=self.section,
-            assigned_teacher=self.teacher,
-            subject='Homework doubt',
-            message='Please explain the homework.',
-        )
-
-        with self.assertRaises(ValidationError):
-            query.full_clean()

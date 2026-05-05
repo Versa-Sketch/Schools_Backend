@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -226,15 +225,6 @@ class Section(TimeStampedModel):
             ),
         ]
 
-    def clean(self):
-        errors = {}
-        if self.academic_class_id and self.school_id and self.academic_class.school_id != self.school_id:
-            errors['academic_class'] = 'Class must belong to the same school.'
-        if self.class_teacher_id and self.school_id and self.class_teacher.school_id != self.school_id:
-            errors['class_teacher'] = 'Class teacher must belong to the same school.'
-        if errors:
-            raise ValidationError(errors)
-
     def __str__(self):
         return f'{self.academic_class.name} {self.name}'
 
@@ -269,23 +259,6 @@ class AttendanceSession(TimeStampedModel):
             ),
         ]
 
-    def clean(self):
-        errors = {}
-        if self.section_id and self.school_id and self.section.school_id != self.school_id:
-            errors['section'] = 'Section must belong to the same school.'
-        if self.taken_by_id and self.school_id and self.taken_by.school_id != self.school_id:
-            errors['taken_by'] = 'Teacher must belong to the same school.'
-
-        configuration = getattr(self.school, 'schoolconfiguration', None) if self.school_id else None
-        if (
-            self.slot == ATTENDANCE_SLOT_AFTERNOON
-            and configuration
-            and configuration.attendance_frequency == ATTENDANCE_ONCE
-        ):
-            errors['slot'] = 'Afternoon attendance requires twice-per-day attendance frequency.'
-        if errors:
-            raise ValidationError(errors)
-
     def confirm(self):
         self.confirmed_at = timezone.now()
         self.save(update_fields=['confirmed_at', 'updated_at'])
@@ -317,12 +290,6 @@ class StudentAttendance(TimeStampedModel):
             ),
         ]
 
-    def clean(self):
-        if self.session_id and self.student_id and self.session.school_id != self.student.school_id:
-            raise ValidationError({'student': 'Student must belong to the same school as the attendance session.'})
-        if self.session_id and self.student_id and self.session.section_id != self.student.section_id:
-            raise ValidationError({'student': 'Student must belong to the attendance session section.'})
-
     def __str__(self):
         return f'{self.student} - {self.session} - {self.status}'
 
@@ -349,14 +316,6 @@ class AbsentNotificationLog(TimeStampedModel):
     provider_response = models.TextField(blank=True)
     error_message = models.TextField(blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
-
-    def clean(self):
-        if self.attendance_id and self.attendance.status != ATTENDANCE_STATUS_ABSENT:
-            raise ValidationError({'attendance': 'Notifications are logged only for absent attendance records.'})
-        if self.attendance_id and self.parent_id and self.attendance.student.school_id != self.parent.school_id:
-            raise ValidationError({'parent': 'Parent must belong to the same school as the student.'})
-        if self.attendance_id and self.parent_id and not self.parent.students.filter(pk=self.attendance.student_id).exists():
-            raise ValidationError({'parent': 'Parent must be linked to the absent student.'})
 
     def __str__(self):
         return f'{self.channel} notification for {self.attendance}'
@@ -403,19 +362,6 @@ class AnnouncementTarget(TimeStampedModel):
         blank=True,
     )
 
-    def clean(self):
-        errors = {}
-        if not self.academic_class_id and not self.section_id:
-            errors['academic_class'] = 'A class or section target is required.'
-        if self.announcement_id and self.academic_class_id and self.academic_class.school_id != self.announcement.school_id:
-            errors['academic_class'] = 'Target class must belong to the announcement school.'
-        if self.announcement_id and self.section_id and self.section.school_id != self.announcement.school_id:
-            errors['section'] = 'Target section must belong to the announcement school.'
-        if self.section_id and self.academic_class_id and self.section.academic_class_id != self.academic_class_id:
-            errors['section'] = 'Target section must belong to the selected class.'
-        if errors:
-            raise ValidationError(errors)
-
     def __str__(self):
         return f'Target for {self.announcement}'
 
@@ -449,19 +395,6 @@ class StudyMaterial(TimeStampedModel):
     class Meta:
         ordering = ['-material_date', '-created_at']
 
-    def clean(self):
-        errors = {}
-        if self.section_id and self.school_id and self.section.school_id != self.school_id:
-            errors['section'] = 'Section must belong to the same school.'
-        if self.subject_id and self.school_id and self.subject.school_id != self.school_id:
-            errors['subject'] = 'Subject must belong to the same school.'
-        if self.uploaded_by_id and self.school_id and self.uploaded_by.school_id != self.school_id:
-            errors['uploaded_by'] = 'Teacher must belong to the same school.'
-        if self.uploaded_by_id and self.section_id and not self.uploaded_by.assigned_sections.filter(pk=self.section_id).exists():
-            errors['uploaded_by'] = 'Teacher must be assigned to this section.'
-        if errors:
-            raise ValidationError(errors)
-
     def __str__(self):
         return self.title
 
@@ -479,19 +412,6 @@ class Homework(TimeStampedModel):
 
     class Meta:
         ordering = ['deadline', '-created_at']
-
-    def clean(self):
-        errors = {}
-        if self.section_id and self.school_id and self.section.school_id != self.school_id:
-            errors['section'] = 'Section must belong to the same school.'
-        if self.subject_id and self.school_id and self.subject.school_id != self.school_id:
-            errors['subject'] = 'Subject must belong to the same school.'
-        if self.assigned_by_id and self.school_id and self.assigned_by.school_id != self.school_id:
-            errors['assigned_by'] = 'Teacher must belong to the same school.'
-        if self.assigned_by_id and self.section_id and not self.assigned_by.assigned_sections.filter(pk=self.section_id).exists():
-            errors['assigned_by'] = 'Teacher must be assigned to this section.'
-        if errors:
-            raise ValidationError(errors)
 
     def __str__(self):
         return f'{self.subject} homework for {self.section}'
@@ -516,10 +436,6 @@ class StudentBulkUploadBatch(TimeStampedModel):
 
     class Meta:
         ordering = ['-created_at']
-
-    def clean(self):
-        if self.uploaded_by_id and self.school_id and self.uploaded_by.school_id != self.school_id:
-            raise ValidationError({'uploaded_by': 'Principal must belong to the same school.'})
 
     def __str__(self):
         return f'Student upload for {self.school} ({self.status})'
@@ -560,15 +476,6 @@ class StudentBulkUploadRow(TimeStampedModel):
             ),
         ]
 
-    def clean(self):
-        errors = {}
-        if self.created_student_id and self.created_student.school_id != self.batch.school_id:
-            errors['created_student'] = 'Created student must belong to the batch school.'
-        if self.created_parent_id and self.created_parent.school_id != self.batch.school_id:
-            errors['created_parent'] = 'Created parent must belong to the batch school.'
-        if errors:
-            raise ValidationError(errors)
-
     def __str__(self):
         return f'Row {self.row_number} - {self.status}'
 
@@ -584,10 +491,6 @@ class AcademicCalendarEvent(TimeStampedModel):
 
     class Meta:
         ordering = ['start_date', 'title']
-
-    def clean(self):
-        if self.end_date and self.start_date and self.end_date < self.start_date:
-            raise ValidationError({'end_date': 'End date cannot be before start date.'})
 
     def __str__(self):
         return self.title
@@ -612,28 +515,6 @@ class ParentQuery(TimeStampedModel):
 
     class Meta:
         ordering = ['-created_at']
-
-    def clean(self):
-        errors = {}
-        configuration = getattr(self.school, 'schoolconfiguration', None) if self.school_id else None
-        if configuration and not configuration.parent_query_enabled:
-            errors['school'] = 'Parent queries are disabled for this school.'
-        if self.parent_id and self.school_id and self.parent.school_id != self.school_id:
-            errors['parent'] = 'Parent must belong to the same school.'
-        if self.student_id and self.school_id and self.student.school_id != self.school_id:
-            errors['student'] = 'Student must belong to the same school.'
-        if self.section_id and self.school_id and self.section.school_id != self.school_id:
-            errors['section'] = 'Section must belong to the same school.'
-        if self.assigned_teacher_id and self.school_id and self.assigned_teacher.school_id != self.school_id:
-            errors['assigned_teacher'] = 'Teacher must belong to the same school.'
-        if self.student_id and self.section_id and self.student.section_id != self.section_id:
-            errors['student'] = 'Student must belong to the selected section.'
-        if self.parent_id and self.student_id and not self.parent.students.filter(pk=self.student_id).exists():
-            errors['parent'] = 'Parent must be linked to the student.'
-        if self.assigned_teacher_id and self.section_id and not self.assigned_teacher.assigned_sections.filter(pk=self.section_id).exists():
-            errors['assigned_teacher'] = 'Teacher must be assigned to this section.'
-        if errors:
-            raise ValidationError(errors)
 
     def __str__(self):
         return self.subject

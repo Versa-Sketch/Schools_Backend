@@ -1,8 +1,5 @@
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.db import models
-
-from core.models import ROLE_TEACHER
 
 
 class TeacherProfile(models.Model):
@@ -31,15 +28,6 @@ class TeacherProfile(models.Model):
 
     class Meta:
         ordering = ['name']
-
-    def clean(self):
-        errors = {}
-        if self.user_id and self.user.role != ROLE_TEACHER:
-            errors['user'] = 'Teacher profile requires a teacher user role.'
-        if self.primary_subject_id and self.school_id and self.primary_subject.school_id != self.school_id:
-            errors['primary_subject'] = 'Primary subject must belong to the same school.'
-        if errors:
-            raise ValidationError(errors)
 
     def __str__(self):
         return self.name
