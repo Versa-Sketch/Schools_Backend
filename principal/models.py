@@ -4,7 +4,7 @@ from django.db import models
 
 class PrincipalProfile(models.Model):
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
+        'core.User',
         on_delete=models.CASCADE,
     )
     school = models.ForeignKey(
