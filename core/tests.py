@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from core.models import (
     ATTENDANCE_SLOT_MORNING,
@@ -193,3 +194,91 @@ class WorkflowValidationTests(TestCase):
 
         self.assertEqual(batch.studentbulkuploadrow_set.count(), 2)
         self.assertEqual(batch.studentbulkuploadrow_set.filter(status=UPLOAD_ROW_STATUS_FAILED).count(), 1)
+
+
+class AuthAPITests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.school = School.objects.create(name='Green Valley School', subdomain='green-valley')
+        self.user = User.objects.create_user(
+            username='teacher',
+            password='secret-pass',
+            role=ROLE_TEACHER,
+            phone_number='9000000001',
+        )
+        self.profile = TeacherProfile.objects.create(
+            user=self.user,
+            school=self.school,
+            name='Teacher One',
+            mobile_number='9000000001',
+        )
+
+    def test_login_with_phone_number_returns_tokens(self):
+        response = self.client.post(
+            '/api/v1/auth/login/',
+            {'phone_number': '9000000001', 'password': 'secret-pass'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+        self.assertEqual(response.data['user']['id'], self.user.id)
+        self.assertEqual(response.data['user']['phone_number'], '9000000001')
+        self.assertEqual(response.data['user']['role'], ROLE_TEACHER)
+        self.assertEqual(response.data['user']['school_id'], self.school.id)
+
+    def test_login_rejects_invalid_password(self):
+        response = self.client.post(
+            '/api/v1/auth/login/',
+            {'phone_number': '9000000001', 'password': 'wrong-pass'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['code'], 'AUTHENTICATION_FAILED')
+
+    def test_login_requires_phone_number(self):
+        response = self.client.post(
+            '/api/v1/auth/login/',
+            {'password': 'secret-pass'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['code'], 'VALIDATION_ERROR')
+
+    def test_refresh_returns_new_access_token(self):
+        login_response = self.client.post(
+            '/api/v1/auth/login/',
+            {'phone_number': '9000000001', 'password': 'secret-pass'},
+            format='json',
+        )
+
+        response = self.client.post(
+            '/api/v1/auth/refresh/',
+            {'refresh': login_response.data['refresh']},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertIn('access', response.data)
+
+    def test_current_user_returns_profile(self):
+        login_response = self.client.post(
+            '/api/v1/auth/login/',
+            {'phone_number': '9000000001', 'password': 'secret-pass'},
+            format='json',
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_response.data['access']}")
+
+        response = self.client.get('/api/v1/me/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['user']['id'], self.user.id)
+        self.assertEqual(response.data['profile']['id'], self.profile.id)
