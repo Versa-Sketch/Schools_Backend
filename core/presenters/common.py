@@ -1,50 +1,13 @@
-from . import constants
-
+from rest_framework.response import Response
 
 class CommonErrorPresenter:
     def error(self, exception):
-        return {
+        payload = {
             'success': False,
             'code': exception.code,
             'details': exception.details,
-        }, exception.status_code
-
-
-class LoginPresenter:
-    def success(self, tokens, user, profile):
-        return {
-            'success': True,
-            'access': tokens['access'],
-            'refresh': tokens['refresh'],
-            'user': format_user(user, profile),
-        }, 200
-
-
-class RefreshTokenPresenter:
-    def success(self, tokens):
-        return {
-            'success': True,
-            'access': tokens['access'],
-        }, 200
-
-
-class LogoutPresenter:
-    def success(self):
-        return {
-            'success': True,
-            'code': constants.SUCCESS,
-            'details': constants.LOGOUT_SUCCESS,
-        }, 200
-
-
-class CurrentUserPresenter:
-    def success(self, user, profile):
-        return {
-            'success': True,
-            'user': format_user(user, profile),
-            'profile': format_profile(profile),
-        }, 200
-
+        }
+        return Response(payload, status=exception.status_code)
 
 def format_user(user, profile=None):
     return {
@@ -55,7 +18,6 @@ def format_user(user, profile=None):
         'role': user.role,
         'school_id': getattr(profile, 'school_id', None),
     }
-
 
 def format_profile(profile):
     if profile is None:

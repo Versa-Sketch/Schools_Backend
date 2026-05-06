@@ -1,14 +1,14 @@
-from django.contrib.auth import get_user_model
+from core.models import User
 
 
 class UserDB:
     def __init__(self):
-        self.user_model = get_user_model()
+        pass
 
     def get_user_by_phone_number(self, phone_number):
         try:
-            return self.user_model.objects.get(phone_number=phone_number)
-        except self.user_model.DoesNotExist:
+            return User.objects.get(phone_number=phone_number)
+        except User.DoesNotExist:
             return None
 
     def get_user_profile(self, user):

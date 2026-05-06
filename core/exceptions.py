@@ -1,4 +1,6 @@
 from rest_framework import status
+from rest_framework.views import exception_handler
+from rest_framework.response import Response
 
 from . import constants
 
@@ -38,3 +40,17 @@ class NotFoundException(AppException):
 class SchoolScopeException(AppException):
     code = constants.SCHOOL_SCOPE_ERROR
     status_code = status.HTTP_403_FORBIDDEN
+
+
+def custom_exception_handler(exc, context):
+    from .presenters.common import CommonErrorPresenter
+
+    # Call REST framework's default exception handler first,
+    # to get the standard error response.
+    response = exception_handler(exc, context)
+
+    # If the exception is our custom AppException
+    if isinstance(exc, AppException):
+        return CommonErrorPresenter().error(exc)
+
+    return response
