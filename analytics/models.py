@@ -3,7 +3,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 
-from core.models import AcademicClass, School, Section, TimeStampedModel
+from core.models import AcademicClass, School, Section, Subject, TimeStampedModel
 
 from .constants import (
     ANALYTICS_STATUS_CHOICES,
@@ -25,8 +25,7 @@ class AnalyticsExam(TimeStampedModel):
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name='uploaded_exams',
-    )
+    )   
     analytics_status = models.CharField(
         max_length=10,
         choices=ANALYTICS_STATUS_CHOICES,
@@ -96,6 +95,13 @@ class ExamSubject(models.Model):
     subject_name = models.CharField(max_length=20, choices=SUBJECT_CHOICES)
     total_questions = models.PositiveSmallIntegerField()
     max_marks = models.PositiveSmallIntegerField()
+    core_subject = models.ForeignKey(
+        Subject,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='exam_subjects',
+    )
 
     class Meta:
         constraints = [

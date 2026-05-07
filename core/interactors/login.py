@@ -5,6 +5,7 @@ from core.exceptions import (
     ValidationException,
 )
 
+
 class LoginInteractor:
     def __init__(self, storage, presenter, authentication):
         self.storage = storage

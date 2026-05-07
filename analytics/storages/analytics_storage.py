@@ -1,0 +1,369 @@
+from core.models import AcademicClass, Section, Subject
+from analytics.models import (
+    AnalyticsExam,
+    AnalyticsStudent,
+    ExamSubject,
+    ExamResult,
+    QuestionResult,
+    QuestionAnalytics,
+    SectionAnalytics,
+    StudentRisk,
+)
+from analytics.constants import (
+    ANALYTICS_STATUS_DONE,
+    ANALYTICS_STATUS_FAILED,
+    ANALYTICS_STATUS_RUNNING,
+)
+from analytics.services.analytics_engine import (
+    compute_question_analytics,
+    compute_student_risks,
+    compute_section_analytics,
+)
+
+
+class AnalyticsDB:
+
+    # ---------------------------------------------------------------- profile
+
+    def get_principal_profile(self, user):
+        if user.role == 'ADMIN':
+            return getattr(user, 'adminprofile', None)
+        return getattr(user, 'principalprofile', None)
+
+    # --------------------------------------------------------- upload pipeline
+
+    def create_exam(self, school, exam_name, exam_date, uploaded_by):
+        return AnalyticsExam.objects.create(
+            school=school,
+            exam_name=exam_name,
+            exam_date=exam_date,
+            uploaded_by=uploaded_by,
+        )
+
+    def get_or_create_core_subject(self, school, subject_name):
+        subject = Subject.objects.filter(school=school, name__iexact=subject_name).first()
+        if subject is None:
+            subject = Subject.objects.create(school=school, name=subject_name)
+        return subject
+
+    def create_exam_subject(self, exam, subject_name, total_questions, max_marks, core_subject):
+        return ExamSubject.objects.create(
+            exam=exam,
+            subject_name=subject_name,
+            total_questions=total_questions,
+            max_marks=max_marks,
+            core_subject=core_subject,
+        )
+
+    def get_or_create_analytics_student(
+        self, school, student_ref_id, name, class_name, section_name
+    ):
+        section = (
+            Section.objects
+            .filter(
+                school=school,
+                name__iexact=section_name,
+                academic_class__name__iexact=class_name,
+            )
+            .select_related('academic_class')
+            .first()
+        )
+        academic_class = (
+            section.academic_class
+            if section
+            else AcademicClass.objects.filter(school=school, name__iexact=class_name).first()
+        )
+
+        student, _ = AnalyticsStudent.objects.update_or_create(
+            student_ref_id=student_ref_id,
+            school=school,
+            defaults={
+                'name': name,
+                'class_name': class_name,
+                'section_name': section_name,
+                'section': section,
+                'academic_class': academic_class,
+            },
+        )
+        return student
+
+    def bulk_create_exam_results(self, records):
+        ExamResult.objects.bulk_create(records, ignore_conflicts=True)
+
+    def bulk_create_question_results(self, records):
+        QuestionResult.objects.bulk_create(records, ignore_conflicts=True)
+
+    # -------------------------------------------------- background analytics
+
+    def run_analytics(self, exam_id):
+        """
+        Orchestrate the full pre-compute pipeline for one exam.
+
+        Called in a daemon thread AFTER the upload transaction has committed,
+        so all ExamResult / QuestionResult rows are visible.
+
+        Order matters:
+          1. QuestionAnalytics  (per subject)
+          2. StudentRisk        (per subject)   — must exist before step 3
+          3. SectionAnalytics   (per subject)   — reads StudentRisk for at_risk_count
+        """
+        try:
+            exam = AnalyticsExam.objects.prefetch_related('subjects').get(id=exam_id)
+        except AnalyticsExam.DoesNotExist:
+            return
+
+        exam.analytics_status = ANALYTICS_STATUS_RUNNING
+        exam.save(update_fields=['analytics_status', 'updated_at'])
+
+        try:
+            # Pre-fetch all AnalyticsStudents who have results in this exam.
+            # Reused in _write_student_risks to map UUID string → FK object.
+            student_map = {
+                str(s.id): s
+                for s in AnalyticsStudent.objects.filter(results__exam=exam).distinct()
+            }
+
+            for exam_subject in exam.subjects.all():
+                self._write_question_analytics(exam, exam_subject, student_map)
+                self._write_student_risks(exam, exam_subject, student_map)
+
+            # Section analytics reads StudentRisk, so runs after both loops above.
+            for exam_subject in exam.subjects.all():
+                self._write_section_analytics(exam, exam_subject)
+
+            exam.analytics_status = ANALYTICS_STATUS_DONE
+            exam.save(update_fields=['analytics_status', 'updated_at'])
+
+        except Exception:
+            exam.analytics_status = ANALYTICS_STATUS_FAILED
+            exam.save(update_fields=['analytics_status', 'updated_at'])
+            raise
+
+    def _write_question_analytics(self, exam, exam_subject, student_map):
+        q_results = list(
+            QuestionResult.objects
+            .filter(exam=exam, subject=exam_subject)
+            .values('student_id', 'q_no', 'status')
+        )
+        subject_marks = list(
+            ExamResult.objects
+            .filter(exam=exam, subject=exam_subject)
+            .values('student_id', 'total_marks')
+        )
+
+        results = compute_question_analytics(q_results, subject_marks)
+        if not results:
+            return
+
+        QuestionAnalytics.objects.filter(exam=exam, subject=exam_subject).delete()
+        QuestionAnalytics.objects.bulk_create([
+            QuestionAnalytics(
+                exam=exam,
+                subject=exam_subject,
+                q_no=r.q_no,
+                correct_count=r.correct_count,
+                wrong_count=r.wrong_count,
+                skip_count=r.skip_count,
+                difficulty_index=r.difficulty_index,
+                difficulty_tag=r.difficulty_tag,
+                discrimination_index=r.discrimination_index,
+                has_key_error=r.has_key_error,
+            )
+            for r in results
+        ])
+
+    def _write_student_risks(self, exam, exam_subject, student_map):
+        subject_results = list(
+            ExamResult.objects
+            .filter(exam=exam, subject=exam_subject)
+            .values('student_id', 'total_marks', 'correct', 'wrong', 'unattempted')
+        )
+
+        results = compute_student_risks(subject_results, exam_subject.total_questions)
+        if not results:
+            return
+
+        StudentRisk.objects.filter(exam=exam, subject=exam_subject).delete()
+        StudentRisk.objects.bulk_create([
+            StudentRisk(
+                exam=exam,
+                student=student_map[r.student_id],
+                subject=exam_subject,
+                risk_score=r.risk_score,
+                risk_label=r.risk_label,
+                z_score=r.z_score,
+                performance_label=r.performance_label,
+            )
+            for r in results
+            if r.student_id in student_map
+        ])
+
+    def _write_section_analytics(self, exam, exam_subject):
+        rows = list(
+            ExamResult.objects
+            .filter(exam=exam, subject=exam_subject, student__section__isnull=False)
+            .values('student__id', 'student__section_id', 'total_marks')
+        )
+        if not rows:
+            return
+
+        section_students = [
+            {
+                'student_id': str(r['student__id']),
+                'section_id': str(r['student__section_id']),
+                'total_marks': r['total_marks'],
+            }
+            for r in rows
+        ]
+
+        risk_by_student = {
+            str(sr['student_id']): sr['risk_label']
+            for sr in StudentRisk.objects
+            .filter(exam=exam, subject=exam_subject)
+            .values('student_id', 'risk_label')
+        }
+
+        results = compute_section_analytics(section_students, risk_by_student)
+        if not results:
+            return
+
+        section_ids    = {r.section_id for r in results}
+        top_scorer_ids = {r.top_scorer_id for r in results}
+
+        section_map = {
+            str(s.id): s
+            for s in Section.objects.filter(id__in=section_ids).select_related('academic_class')
+        }
+        top_scorer_map = {
+            str(s.id): s
+            for s in AnalyticsStudent.objects.filter(id__in=top_scorer_ids)
+        }
+
+        SectionAnalytics.objects.filter(exam=exam, subject=exam_subject).delete()
+        SectionAnalytics.objects.bulk_create(
+            [
+                SectionAnalytics(
+                    exam=exam,
+                    section=section_map[r.section_id],
+                    academic_class=section_map[r.section_id].academic_class,
+                    subject=exam_subject,
+                    avg_marks=r.avg_marks,
+                    median_marks=r.median_marks,
+                    std_dev=r.std_dev,
+                    top_scorer=top_scorer_map.get(r.top_scorer_id),
+                    at_risk_count=r.at_risk_count,
+                )
+                for r in results
+                if r.section_id in section_map
+            ],
+            ignore_conflicts=True,
+        )
+
+    # --------------------------------------------------------------- read API
+
+    def get_exam_by_id(self, exam_id, school_id):
+        try:
+            return (
+                AnalyticsExam.objects
+                .prefetch_related('subjects')
+                .get(id=exam_id, school_id=school_id)
+            )
+        except AnalyticsExam.DoesNotExist:
+            return None
+
+    def get_exams_for_school(self, school_id):
+        return list(
+            AnalyticsExam.objects
+            .filter(school_id=school_id)
+            .prefetch_related('subjects')
+        )
+
+    def get_section_analytics_for_exam(self, exam_id):
+        return list(
+            SectionAnalytics.objects
+            .filter(exam_id=exam_id)
+            .select_related('section', 'academic_class', 'subject', 'top_scorer')
+        )
+
+    def get_question_analytics_for_subject(self, exam_id, subject_name):
+        return list(
+            QuestionAnalytics.objects
+            .filter(exam_id=exam_id, subject__subject_name=subject_name)
+            .order_by('q_no')
+        )
+
+    def get_question_detail(self, exam_id, subject_name, q_no):
+        try:
+            return QuestionAnalytics.objects.select_related('subject').get(
+                exam_id=exam_id,
+                subject__subject_name=subject_name,
+                q_no=q_no,
+            )
+        except QuestionAnalytics.DoesNotExist:
+            return None
+
+    def get_exam_results_for_section(self, exam_id, class_name, section_name, school_id):
+        """
+        Returns ExamResult rows for all students in a given class+section,
+        annotated with their risk data. Used by Screen 3 student table.
+        """
+        return list(
+            ExamResult.objects
+            .filter(
+                exam_id=exam_id,
+                exam__school_id=school_id,
+                student__class_name__iexact=class_name,
+                student__section_name__iexact=section_name,
+            )
+            .select_related('student', 'subject')
+            .order_by('student__name', 'subject__subject_name')
+        )
+
+    def get_student_risks_for_section(self, exam_id, class_name, section_name, school_id):
+        """
+        Returns StudentRisk rows for all students in a section.
+        Keyed by (student_id, subject_name) for fast lookup in the presenter.
+        """
+        risks = StudentRisk.objects.filter(
+            exam_id=exam_id,
+            exam__school_id=school_id,
+            student__class_name__iexact=class_name,
+            student__section_name__iexact=section_name,
+        ).select_related('student', 'subject')
+        return {
+            (str(r.student_id), r.subject.subject_name): r
+            for r in risks
+        }
+
+    def get_student_by_ref_id(self, student_ref_id, school_id):
+        try:
+            return AnalyticsStudent.objects.get(
+                student_ref_id=student_ref_id, school_id=school_id
+            )
+        except AnalyticsStudent.DoesNotExist:
+            return None
+
+    def get_student_risks_for_exam(self, exam_id, student_ref_id, school_id):
+        return list(
+            StudentRisk.objects
+            .filter(
+                exam_id=exam_id,
+                student__student_ref_id=student_ref_id,
+                student__school_id=school_id,
+            )
+            .select_related('subject')
+        )
+
+    def get_question_results_for_student(
+        self, exam_id, student_ref_id, subject_name, school_id
+    ):
+        return list(
+            QuestionResult.objects
+            .filter(
+                exam_id=exam_id,
+                student__student_ref_id=student_ref_id,
+                student__school_id=school_id,
+                subject__subject_name=subject_name,
+            )
+            .order_by('q_no')
+        )

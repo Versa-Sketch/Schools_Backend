@@ -7,10 +7,28 @@ SUBJECT_CHOICES = [
     (SUBJECT_CHEMISTRY, 'Chemistry'),
 ]
 
-SUBJECT_CONFIG = {
-    SUBJECT_MATHS:     {'total_questions': 80, 'max_marks': 80, 'prefix': 'm_q'},
-    SUBJECT_PHYSICS:   {'total_questions': 40, 'max_marks': 40, 'prefix': 'p_q'},
-    SUBJECT_CHEMISTRY: {'total_questions': 40, 'max_marks': 40, 'prefix': 'c_q'},
+# CSV column prefix for question columns: m_q1, m_q2, ... / p_q1, ... / c_q1, ...
+# total_questions is detected dynamically from CSV headers, not hardcoded here.
+SUBJECT_PREFIX_MAP = {
+    SUBJECT_MATHS:     'm_q',
+    SUBJECT_PHYSICS:   'p_q',
+    SUBJECT_CHEMISTRY: 'c_q',
+}
+
+# Maps each subject to its per-student summary columns in the CSV
+SUBJECT_COLUMN_MAP = {
+    SUBJECT_MATHS: {
+        'total': 'maths_total', 'rank': 'maths_rank',
+        'correct': 'maths_correct', 'wrong': 'maths_wrong', 'unattempted': 'maths_unattempted',
+    },
+    SUBJECT_PHYSICS: {
+        'total': 'physics_total', 'rank': 'physics_rank',
+        'correct': 'physics_correct', 'wrong': 'physics_wrong', 'unattempted': 'physics_unattempted',
+    },
+    SUBJECT_CHEMISTRY: {
+        'total': 'chem_total', 'rank': 'chem_rank',
+        'correct': 'chem_correct', 'wrong': 'chem_wrong', 'unattempted': 'chem_unattempted',
+    },
 }
 
 ANALYTICS_STATUS_PENDING = 'PENDING'
@@ -32,6 +50,22 @@ DIFFICULTY_CHOICES = [
     (DIFFICULTY_MEDIUM, 'Medium'),
     (DIFFICULTY_HARD, 'Hard'),
 ]
+
+# difficulty_index is expressed as 0–100 (percentage of students who got it right)
+DIFFICULTY_EASY_THRESHOLD   = 70.0   # > 70  → EASY
+DIFFICULTY_MEDIUM_THRESHOLD = 30.0   # 30–70 → MEDIUM, below 30 → HARD
+
+# has_key_error = True only when discrimination is meaningfully negative
+# AND the question is not easy. Easy questions (>70% correct) can have
+# slightly negative discrimination just because the formula loses resolution
+# when almost everyone answers correctly — that is not a real answer-key error.
+KEY_ERROR_DISCRIMINATION_THRESHOLD = -0.15   # discrimination must be worse than this
+KEY_ERROR_MAX_DIFFICULTY           = 70.0    # skip the flag if difficulty_index ≥ this
+
+# Risk score component weights (must sum ≤ 100)
+RISK_SCORE_MARKS_WEIGHT  = 40   # how far below batch average
+RISK_SCORE_WRONG_WEIGHT  = 30   # wrong-answer rate among attempted questions
+RISK_SCORE_SKIP_WEIGHT   = 20   # skip rate across all questions
 
 RISK_SAFE = 'SAFE'
 RISK_WATCH = 'WATCH'
@@ -64,6 +98,7 @@ QUESTION_STATUS_CHOICES = [
     (QUESTION_STATUS_UNATTEMPTED, 'Unattempted'),
 ]
 
+# Fixed columns every CSV must have
 REQUIRED_INFO_COLUMNS = [
     'student_id', 'student_name', 'exam_name', 'exam_date', 'class', 'section',
 ]
@@ -73,10 +108,3 @@ REQUIRED_SUBJECT_COLUMNS = [
     'physics_total', 'physics_rank', 'physics_correct', 'physics_wrong', 'physics_unattempted',
     'chem_total', 'chem_rank', 'chem_correct', 'chem_wrong', 'chem_unattempted',
 ]
-
-MATHS_Q_COLUMNS = [f'm_q{i}' for i in range(1, 81)]
-PHYSICS_Q_COLUMNS = [f'p_q{i}' for i in range(1, 41)]
-CHEM_Q_COLUMNS = [f'c_q{i}' for i in range(1, 41)]
-QUESTION_COLUMNS = MATHS_Q_COLUMNS + PHYSICS_Q_COLUMNS + CHEM_Q_COLUMNS
-
-ALL_REQUIRED_COLUMNS = REQUIRED_INFO_COLUMNS + REQUIRED_SUBJECT_COLUMNS + QUESTION_COLUMNS
