@@ -4,6 +4,10 @@
 
 This app owns shared authentication, school context, common lookup data, announcements, and calendar visibility. All endpoints use REST-style paths under `/api/v1/` and assume JWT authentication unless explicitly marked public.
 
+## ID Format
+
+All model IDs are UUIDs. Every `id` and `*_id` field in requests and responses is a UUID string in the format `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
+
 ## Shared API Defaults
 
 - Base path: `/api/v1/`
@@ -53,24 +57,6 @@ Common error codes:
 - `UPLOAD_FAILED`
 - `EXAM_MODEL_NOT_IMPLEMENTED`
 
-Examples:
-
-```json
-{
-  "success": false,
-  "code": "PERMISSION_DENIED",
-  "details": "You do not have permission to access this resource."
-}
-```
-
-```json
-{
-  "success": false,
-  "code": "VALIDATION_ERROR",
-  "details": "The selected section does not belong to your school."
-}
-```
-
 ## Roles
 
 - `PRINCIPAL`: full school administration access.
@@ -82,13 +68,13 @@ Examples:
 
 ### `POST /api/v1/auth/login/`
 
-Public endpoint for username/password login.
+Public endpoint. Authenticates by phone number and password.
 
 Request:
 
 ```json
 {
-  "username": "teacher1",
+  "phone_number": "9999999999",
   "password": "password"
 }
 ```
@@ -98,7 +84,7 @@ Response:
 ```json
 {
   "access": "jwt-access-token",
-  "refresh": "jwt-refresh-token",
+  "refresh": "jwt-refresh-token"
 }
 ```
 
@@ -106,7 +92,6 @@ Validation:
 
 - Use `AUTHENTICATION_FAILED` for invalid credentials.
 - Use `PERMISSION_DENIED` if the user is inactive.
-- Include the user's school only when the user has a profile linked to a school.
 
 ### `POST /api/v1/auth/refresh/`
 
@@ -127,8 +112,6 @@ Response:
 ```
 
 ### `POST /api/v1/auth/logout/`
-
-Invalidates the refresh token if token blacklisting is enabled.
 
 Request:
 
@@ -156,27 +139,28 @@ Response for teacher:
 
 ```json
 {
-  "id": 2,
+  "id": "88888888-8888-8888-8888-888888888888",
   "username": "teacher1",
   "role": "TEACHER",
+  "profile_pic_url": "https://bucket.s3.region.amazonaws.com/profile_pics/uuid.jpg",
   "profile": {
-    "id": 10,
+    "id": "55555555-5555-5555-5555-555555555555",
     "name": "Anita Sharma",
     "mobile_number": "9999999999",
     "primary_subject": {
-      "id": 4,
+      "id": "44444444-4444-4444-4444-444444444444",
       "name": "Mathematics"
     },
     "assigned_sections": [
       {
-        "id": 7,
+        "id": "33333333-3333-3333-3333-333333333333",
         "class_name": "Class 5",
         "section_name": "A"
       }
     ]
   },
   "school": {
-    "id": 1,
+    "id": "11111111-1111-1111-1111-111111111111",
     "name": "Green Valley School",
     "subdomain": "green-valley"
   }
@@ -185,6 +169,7 @@ Response for teacher:
 
 Response rules:
 
+- `profile_pic_url` is `null` until the user uploads a picture via their role-specific profile pic endpoint.
 - Principal includes principal profile and school.
 - Teacher includes assigned sections and class teacher sections.
 - Student includes student profile, class, section, roll number, admission number.
@@ -198,7 +183,7 @@ Response:
 
 ```json
 {
-  "id": 1,
+  "id": "11111111-1111-1111-1111-111111111111",
   "name": "Green Valley School",
   "subdomain": "green-valley",
   "address": "School address",
@@ -221,7 +206,7 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 1,
+      "id": "22222222-2222-2222-2222-222222222222",
       "name": "Class 5",
       "display_order": 5
     }
@@ -235,7 +220,7 @@ Lists sections for the current school.
 
 Query params:
 
-- `class_id`: optional class filter.
+- `class_id`: optional UUID class filter.
 
 Response:
 
@@ -244,14 +229,14 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 7,
+      "id": "33333333-3333-3333-3333-333333333333",
       "name": "A",
       "academic_class": {
-        "id": 1,
+        "id": "22222222-2222-2222-2222-222222222222",
         "name": "Class 5"
       },
       "class_teacher": {
-        "id": 10,
+        "id": "55555555-5555-5555-5555-555555555555",
         "name": "Anita Sharma"
       }
     }
@@ -263,11 +248,6 @@ Response:
 
 Lists active subjects for the current school.
 
-Query params:
-
-- `class_id`: optional future filter.
-- `section_id`: optional future filter.
-
 Response:
 
 ```json
@@ -275,7 +255,7 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 4,
+      "id": "44444444-4444-4444-4444-444444444444",
       "name": "Mathematics",
       "code": "MATH",
       "is_active": true
@@ -303,7 +283,7 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 3,
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
       "title": "Annual Day",
       "event_type": "EVENT",
       "start_date": "2026-08-10",
@@ -338,7 +318,7 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 11,
+      "id": "99999999-9999-9999-9999-999999999999",
       "title": "School Reopens",
       "body": "School reopens on Monday.",
       "author_role": "PRINCIPAL",
@@ -346,7 +326,7 @@ Response:
       "published_at": "2026-06-01T09:00:00Z",
       "attachments": [
         {
-          "id": 8,
+          "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
           "filename": "notice.pdf",
           "content_type": "application/pdf",
           "file_url": "/media/announcements/notice.pdf"
@@ -359,7 +339,7 @@ Response:
 
 ### `GET /api/v1/announcements/{id}/`
 
-Returns the full announcement record with targets and attachments when visible to the current user.
+Returns the full announcement record. `{id}` is a UUID.
 
 Common errors:
 
@@ -370,102 +350,41 @@ Common errors:
 
 ### `School`
 
-Fields:
-
-- `id`
-- `name`
-- `subdomain`
-- `address`
-- `contact_email`
-- `contact_phone`
-- `is_active`
+Fields: `id` (UUID), `name`, `subdomain`, `address`, `contact_email`, `contact_phone`, `is_active`
 
 ### `SchoolConfiguration`
 
-Fields:
-
-- `attendance_frequency`: `ONCE` or `TWICE`
-- `whatsapp_absent_automation_enabled`
-- `parent_query_enabled`
+Fields: `attendance_frequency` (`ONCE` or `TWICE`), `whatsapp_absent_automation_enabled`, `parent_query_enabled`
 
 ### `AcademicClass`
 
-Fields:
+Fields: `id` (UUID), `school_id` (UUID), `name`, `display_order`
 
-- `id`
-- `school_id`
-- `name`
-- `display_order`
-
-Rules:
-
-- Class name is unique per school.
+Rules: Class name is unique per school.
 
 ### `Section`
 
-Fields:
+Fields: `id` (UUID), `school_id` (UUID), `academic_class_id` (UUID), `name`, `class_teacher_id` (UUID)
 
-- `id`
-- `school_id`
-- `academic_class_id`
-- `name`
-- `class_teacher_id`
-
-Rules:
-
-- Section name is unique per class.
+Rules: Section name is unique per class.
 
 ### `Subject`
 
-Fields:
+Fields: `id` (UUID), `school_id` (UUID), `name`, `code`, `is_active`
 
-- `id`
-- `school_id`
-- `name`
-- `code`
-- `is_active`
-
-Rules:
-
-- Subject name is unique per school.
-- Subject code is unique per school when set.
+Rules: Subject name unique per school. Subject code unique per school when set.
 
 ### `AcademicCalendarEvent`
 
-Fields:
-
-- `id`
-- `school_id`
-- `title`
-- `event_type`
-- `start_date`
-- `end_date`
-- `description`
-- `visible_to`
+Fields: `id` (UUID), `school_id` (UUID), `title`, `event_type`, `start_date`, `end_date`, `description`, `visible_to`
 
 ### `Announcement`
 
-Fields:
-
-- `id`
-- `school_id`
-- `author_id`
-- `author_role`
-- `title`
-- `body`
-- `audience`
-- `published_at`
-- `is_active`
+Fields: `id` (UUID), `school_id` (UUID), `author_id` (UUID), `author_role`, `title`, `body`, `audience`, `published_at`, `is_active`
 
 ### `AnnouncementAttachment`
 
-Fields:
-
-- `id`
-- `announcement_id`
-- `file`
-- `filename`
-- `content_type`
+Fields: `id` (UUID), `announcement_id` (UUID), `file`, `filename`, `content_type`
 
 ## Known Model Gaps
 
@@ -475,7 +394,6 @@ These models do not exist yet and are required before implementing the exam and 
 - `ExamSubject`
 - `ExamSection`
 - `StudentMark`
-- Optional analytics read models or computed dashboard serializers.
 
 ## Core Test Scenarios
 
@@ -486,3 +404,5 @@ These models do not exist yet and are required before implementing the exam and 
 - Class, section, and subject lists are scoped to the current school.
 - Calendar visibility respects `visible_to`.
 - Announcement visibility respects school, class, section, and role.
+- All `id` fields in responses are UUID strings.
+- UUID path params are accepted; non-UUID values return 404.

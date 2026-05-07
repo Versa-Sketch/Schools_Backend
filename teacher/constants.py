@@ -1,3 +1,16 @@
 from core.constants import ROLE_NOT_ALLOWED
 
 TEACHER_ROLE_REQUIRED = 'Only teachers can access this endpoint.'
+SECTION_NOT_ASSIGNED = 'This section is not assigned to you.'
+ATTENDANCE_SESSION_NOT_FOUND = 'Attendance session not found.'
+ATTENDANCE_ALREADY_CONFIRMED = 'This attendance session has already been confirmed.'
+INVALID_ATTENDANCE_SLOT = 'Afternoon slot is not allowed for once-per-day attendance.'
+STUDENT_NOT_IN_SECTION = 'One or more students do not belong to this section.'
+INVALID_ATTENDANCE_STATUS = 'Attendance status must be PRESENT or ABSENT.'
+NOT_CLASS_TEACHER = 'You are not the class teacher for this section.'
+SUBJECT_NOT_ASSIGNED = 'Subject is not part of this school.'
+STUDY_MATERIAL_NOT_FOUND = 'Study material not found.'
+HOMEWORK_NOT_FOUND = 'Homework not found.'
+QUERY_NOT_FOUND = 'Parent query not found.'
+QUERY_CLOSED = 'This query is closed and cannot receive new replies.'
+EXAM_NOT_IMPLEMENTED = 'Exam management models are not yet implemented.'

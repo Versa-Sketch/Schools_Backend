@@ -17,6 +17,7 @@ def format_user(user, profile=None):
         'email': user.email,
         'role': user.role,
         'school_id': getattr(profile, 'school_id', None),
+        'profile_pic_url': user.profile_pic or None,
     }
 
 def format_profile(profile):

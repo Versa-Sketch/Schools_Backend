@@ -4,51 +4,67 @@
 
 This app owns student-facing read-only APIs for profile, attendance, announcements, study materials, homework, calendar, exams, and results.
 
-All endpoints use `/api/v1/`, require JWT authentication, and require role `STUDENT`.
+All endpoints use `/api/v1/student/`, require JWT authentication, and require role `STUDENT`.
 
-## Error Format
+## ID Format
 
-All errors follow the common error format defined in `core/API_SPEC.md`:
-
-```json
-{
-  "success": false,
-  "code": "PERMISSION_DENIED",
-  "details": "Students can only access their own data."
-}
-```
+All `id` and `*_id` fields are UUID strings (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
 
 ## Permissions
 
 - Students can only access their own profile and own section data.
 - Students cannot mutate attendance, homework, materials, announcements, exams, or results.
-- Cross-school and other-student access uses `NOT_FOUND` or `PERMISSION_DENIED`.
 
-## Profile
+## Profile Picture
 
-### `GET /api/v1/student/profile/`
+### `PATCH /api/v1/student/profile/pic/`
 
-Returns the current student profile.
+Uploads or replaces the student's profile picture.
+
+Content type: `multipart/form-data`
+
+Field: `profile_pic` — image file (JPEG, PNG, WebP, or GIF; maximum 50 MB).
 
 Response:
 
 ```json
 {
-  "id": 101,
+  "profile_pic_url": "https://bucket.s3.region.amazonaws.com/profile_pics/uuid.jpg"
+}
+```
+
+The returned URL is also included in the `profile_pic_url` field of `GET /api/v1/me/`.
+
+Validation:
+
+- `profile_pic` field is required.
+- File MIME type must be one of: `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Returns `VALIDATION_ERROR` otherwise.
+- File size must not exceed 50 MB. Returns `VALIDATION_ERROR` otherwise.
+- S3 upload failure returns `UPLOAD_FAILED`.
+
+## Profile
+
+### `GET /api/v1/student/profile/`
+
+Response:
+
+```json
+{
+  "id": "66666666-6666-6666-6666-666666666666",
   "name": "Aarav Mehta",
   "roll_number": "1",
   "admission_number": "ADM001",
   "is_active": true,
   "academic_class": {
-    "id": 1,
+    "id": "22222222-2222-2222-2222-222222222222",
     "name": "Class 5"
   },
   "section": {
-    "id": 7,
+    "id": "33333333-3333-3333-3333-333333333333",
     "name": "A"
   },
   "school": {
-    "id": 1,
+    "id": "11111111-1111-1111-1111-111111111111",
     "name": "Green Valley School"
   }
 }
@@ -58,14 +74,7 @@ Response:
 
 ### `GET /api/v1/student/attendance/`
 
-Returns the student's own attendance history.
-
-Query params:
-
-- `date_from`: optional ISO date.
-- `date_to`: optional ISO date.
-- `slot`: optional, one of `MORNING`, `AFTERNOON`.
-- `status`: optional, one of `PRESENT`, `ABSENT`.
+Query params: `date_from`, `date_to`, `slot` (`MORNING`/`AFTERNOON`), `status` (`PRESENT`/`ABSENT`)
 
 Response:
 
@@ -96,13 +105,7 @@ Rules:
 
 ### `GET /api/v1/student/announcements/`
 
-Returns announcements visible to the student.
-
-Visible announcements:
-
-- School-wide announcements.
-- Class announcements for the student's class.
-- Section announcements for the student's section.
+Visible announcements: school-wide, class-level for student's class, section-level for student's section.
 
 Response:
 
@@ -111,7 +114,7 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 11,
+      "id": "99999999-9999-9999-9999-999999999999",
       "title": "School Reopens",
       "body": "School reopens on Monday.",
       "author_role": "PRINCIPAL",
@@ -127,13 +130,7 @@ Response:
 
 ### `GET /api/v1/student/study-materials/`
 
-Returns materials for the student's section.
-
-Query params:
-
-- `subject_id`: optional.
-- `date_from`: optional ISO date.
-- `date_to`: optional ISO date.
+Query params: `subject_id` (UUID), `date_from`, `date_to`
 
 Response:
 
@@ -142,17 +139,17 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 40,
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
       "title": "Fractions Worksheet",
       "description": "Practice worksheet.",
       "subject": {
-        "id": 4,
+        "id": "44444444-4444-4444-4444-444444444444",
         "name": "Mathematics"
       },
       "material_date": "2026-05-05",
       "file_url": "/media/study_materials/fractions.pdf",
       "uploaded_by": {
-        "id": 10,
+        "id": "55555555-5555-5555-5555-555555555555",
         "name": "Anita Sharma"
       }
     }
@@ -164,13 +161,7 @@ Response:
 
 ### `GET /api/v1/student/homework/`
 
-Returns homework for the student's section.
-
-Query params:
-
-- `subject_id`: optional.
-- `deadline_from`: optional datetime.
-- `deadline_to`: optional datetime.
+Query params: `subject_id` (UUID), `deadline_from`, `deadline_to`
 
 Response:
 
@@ -179,15 +170,15 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 50,
+      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
       "subject": {
-        "id": 4,
+        "id": "44444444-4444-4444-4444-444444444444",
         "name": "Mathematics"
       },
       "description": "Complete exercise 5.1.",
       "deadline": "2026-05-06T17:00:00Z",
       "assigned_by": {
-        "id": 10,
+        "id": "55555555-5555-5555-5555-555555555555",
         "name": "Anita Sharma"
       }
     }
@@ -199,13 +190,7 @@ Response:
 
 ### `GET /api/v1/student/calendar-events/`
 
-Returns calendar events visible to students.
-
-Query params:
-
-- `event_type`: optional, one of `HOLIDAY`, `EXAM`, `EVENT`.
-- `start_date`: optional.
-- `end_date`: optional.
+Query params: `event_type`, `start_date`, `end_date`
 
 Response:
 
@@ -214,7 +199,7 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 3,
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
       "title": "Annual Day",
       "event_type": "EVENT",
       "start_date": "2026-08-10",
@@ -229,95 +214,19 @@ Response:
 
 ### `GET /api/v1/student/exams/`
 
-Returns exams applicable to the student's class or section.
-
-Response:
-
-```json
-{
-  "count": 1,
-  "results": [
-    {
-      "id": 20,
-      "name": "Mid Term Exam",
-      "start_date": "2026-09-01",
-      "end_date": "2026-09-10",
-      "subjects": [
-        {
-          "subject_id": 4,
-          "subject_name": "Mathematics",
-          "max_marks": 100,
-          "pass_marks": 35
-        }
-      ]
-    }
-  ]
-}
-```
-
-Required future models:
-
-- `Exam`
-- `ExamSubject`
-- `ExamSection`
-- `StudentMark`
+Returns `501 EXAM_MODEL_NOT_IMPLEMENTED`.
 
 ## Results
 
 ### `GET /api/v1/student/results/`
 
-Returns the student's own results, rank, subject performance, and growth trend.
-
-Query params:
-
-- `exam_id`: optional.
-
-Response:
-
-```json
-{
-  "student": {
-    "id": 101,
-    "name": "Aarav Mehta",
-    "roll_number": "1"
-  },
-  "exam": {
-    "id": 20,
-    "name": "Mid Term Exam"
-  },
-  "summary": {
-    "total_marks": 430,
-    "max_marks": 500,
-    "percentage": 86.0,
-    "section_rank": 3,
-    "class_rank": 8
-  },
-  "subjects": [
-    {
-      "subject_id": 4,
-      "subject_name": "Mathematics",
-      "marks_obtained": 92,
-      "max_marks": 100,
-      "pass_marks": 35,
-      "grade": "A"
-    }
-  ],
-  "growth_trend": []
-}
-```
-
-Visibility:
-
-- Results are visible only after marks are published, if a publish workflow is added.
-- Until publish workflow exists, visibility is controlled by implementation policy and should be documented before release.
+Returns `501 EXAM_MODEL_NOT_IMPLEMENTED`.
 
 ## Student Test Scenarios
 
 - Student profile returns only the authenticated student's profile.
 - Attendance endpoint shows only confirmed sessions.
-- Student cannot see another student's attendance or results.
+- Student cannot see another student's data.
 - Announcements include school, class, and section targets.
 - Study materials and homework are limited to the student's section.
-- Calendar events respect student visibility.
-- Exams include only exams assigned to the student's class or section.
-- Results include only the student's own marks.
+- All `id` fields in responses are UUID strings.

@@ -9,6 +9,10 @@ from .interactors.current_user import CurrentUserInteractor
 from .interactors.login import LoginInteractor
 from .interactors.logout import LogoutInteractor
 from .interactors.refresh_token import RefreshTokenInteractor
+from .interactors.school import SchoolInteractor
+from .interactors.lookup import ClassListInteractor, SectionListInteractor, SubjectListInteractor
+from .interactors.calendar_events import CalendarEventListInteractor
+from .interactors.announcements import AnnouncementListInteractor, AnnouncementDetailInteractor
 
 from .jwt_auth.jwt_tokens import UserAuthentication
 
@@ -16,10 +20,13 @@ from .presenters.current_user import CurrentUserPresenter
 from .presenters.login import LoginPresenter
 from .presenters.logout import LogoutPresenter
 from .presenters.refresh_token import RefreshTokenPresenter
+from .presenters.school import SchoolPresenter
+from .presenters.lookup import LookupPresenter
+from .presenters.calendar_events import CalendarEventPresenter
+from .presenters.announcements import AnnouncementPresenter
 
 from .storages.user_storage import UserDB
-
-
+from .storages.core_storage import CoreDB
 
 
 @api_view(['POST'])
@@ -66,3 +73,77 @@ def current_user_view(request):
         storage=UserDB(),
         presenter=CurrentUserPresenter(),
     ).get_current_user(user=request.user)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def school_view(request):
+    return SchoolInteractor(
+        storage=CoreDB(),
+        presenter=SchoolPresenter(),
+    ).get_school(user=request.user)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def class_list_view(request):
+    return ClassListInteractor(
+        storage=CoreDB(),
+        presenter=LookupPresenter(),
+    ).get_classes(user=request.user)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def section_list_view(request):
+    class_id = request.query_params.get('class_id')
+    return SectionListInteractor(
+        storage=CoreDB(),
+        presenter=LookupPresenter(),
+    ).get_sections(user=request.user, class_id=class_id)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def subject_list_view(request):
+    return SubjectListInteractor(
+        storage=CoreDB(),
+        presenter=LookupPresenter(),
+    ).get_subjects(user=request.user)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def calendar_event_list_view(request):
+    event_type = request.query_params.get('event_type')
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+    return CalendarEventListInteractor(
+        storage=CoreDB(),
+        presenter=CalendarEventPresenter(),
+    ).get_calendar_events(
+        user=request.user,
+        event_type=event_type,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def announcement_list_view(request):
+    audience = request.query_params.get('audience')
+    published_after = request.query_params.get('published_after')
+    return AnnouncementListInteractor(
+        storage=CoreDB(),
+        presenter=AnnouncementPresenter(),
+    ).get_announcements(user=request.user, audience=audience, published_after=published_after)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def announcement_detail_view(request, announcement_id):
+    return AnnouncementDetailInteractor(
+        storage=CoreDB(),
+        presenter=AnnouncementPresenter(),
+    ).get_announcement(user=request.user, announcement_id=announcement_id)

@@ -4,32 +4,48 @@
 
 This app owns teacher workflows: assigned sections, attendance, class teacher announcements, study materials, homework, exam marks entry, and parent query replies.
 
-All endpoints use `/api/v1/`, require JWT authentication, and require role `TEACHER`.
+All endpoints use `/api/v1/teacher/`, require JWT authentication, and require role `TEACHER`.
 
-## Error Format
+## ID Format
 
-All errors follow the common error format defined in `core/API_SPEC.md`:
-
-```json
-{
-  "success": false,
-  "code": "ATTENDANCE_ALREADY_CONFIRMED",
-  "details": "Confirmed attendance cannot be edited."
-}
-```
+All `id` and `*_id` fields are UUID strings (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
 
 ## Permissions
 
 - Teachers can access sections assigned through `TeacherProfile.assigned_sections`.
 - Teachers can access sections where they are set as `Section.class_teacher`.
-- Class teacher announcements, study materials, homework, attendance, and parent queries are section-scoped.
-- Cross-school or unassigned section access uses `NOT_FOUND` or `PERMISSION_DENIED`.
+- Cross-school or unassigned section access returns `NOT_FOUND` or `PERMISSION_DENIED`.
+
+## Profile Picture
+
+### `PATCH /api/v1/teacher/profile/pic/`
+
+Uploads or replaces the teacher's profile picture.
+
+Content type: `multipart/form-data`
+
+Field: `profile_pic` — image file (JPEG, PNG, WebP, or GIF; maximum 50 MB).
+
+Response:
+
+```json
+{
+  "profile_pic_url": "https://bucket.s3.region.amazonaws.com/profile_pics/uuid.jpg"
+}
+```
+
+The returned URL is also included in the `profile_pic_url` field of `GET /api/v1/me/`.
+
+Validation:
+
+- `profile_pic` field is required.
+- File MIME type must be one of: `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Returns `VALIDATION_ERROR` otherwise.
+- File size must not exceed 50 MB. Returns `VALIDATION_ERROR` otherwise.
+- S3 upload failure returns `UPLOAD_FAILED`.
 
 ## Sections And Students
 
 ### `GET /api/v1/teacher/sections/`
-
-Lists assigned sections and class teacher sections.
 
 Response:
 
@@ -38,7 +54,7 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 7,
+      "id": "33333333-3333-3333-3333-333333333333",
       "class_name": "Class 5",
       "section_name": "A",
       "is_class_teacher": true,
@@ -50,7 +66,7 @@ Response:
 
 ### `GET /api/v1/teacher/sections/{section_id}/students/`
 
-Lists active students in alphabetical order.
+`{section_id}` is a UUID.
 
 Response:
 
@@ -59,13 +75,13 @@ Response:
   "count": 2,
   "results": [
     {
-      "id": 101,
+      "id": "66666666-6666-6666-6666-666666666666",
       "name": "Aarav Mehta",
       "roll_number": "1",
       "admission_number": "ADM001"
     },
     {
-      "id": 102,
+      "id": "66666666-6666-6666-6666-666666666667",
       "name": "Bhavya Rao",
       "roll_number": "2",
       "admission_number": "ADM002"
@@ -74,21 +90,15 @@ Response:
 }
 ```
 
-Validation:
-
-- `section_id` must be assigned to the teacher or taught by the teacher.
-
 ## Attendance
 
 ### `POST /api/v1/teacher/attendance-sessions/`
-
-Creates or fetches an attendance session for section, date, and slot.
 
 Request:
 
 ```json
 {
-  "section_id": 7,
+  "section_id": "33333333-3333-3333-3333-333333333333",
   "date": "2026-05-05",
   "slot": "MORNING"
 }
@@ -98,12 +108,12 @@ Response:
 
 ```json
 {
-  "id": 30,
-  "section_id": 7,
+  "id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+  "section_id": "33333333-3333-3333-3333-333333333333",
   "date": "2026-05-05",
   "slot": "MORNING",
   "taken_by": {
-    "id": 10,
+    "id": "55555555-5555-5555-5555-555555555555",
     "name": "Anita Sharma"
   },
   "confirmed_at": null,
@@ -119,7 +129,7 @@ Validation:
 
 ### `PUT /api/v1/teacher/attendance-sessions/{id}/students/`
 
-Marks attendance for all students in the session.
+`{id}` is the session UUID.
 
 Request:
 
@@ -127,11 +137,11 @@ Request:
 {
   "records": [
     {
-      "student_id": 101,
+      "student_id": "66666666-6666-6666-6666-666666666666",
       "status": "PRESENT"
     },
     {
-      "student_id": 102,
+      "student_id": "66666666-6666-6666-6666-666666666667",
       "status": "ABSENT"
     }
   ]
@@ -142,15 +152,15 @@ Response:
 
 ```json
 {
-  "session_id": 30,
+  "session_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
   "records": [
     {
-      "student_id": 101,
+      "student_id": "66666666-6666-6666-6666-666666666666",
       "student_name": "Aarav Mehta",
       "status": "PRESENT"
     },
     {
-      "student_id": 102,
+      "student_id": "66666666-6666-6666-6666-666666666667",
       "student_name": "Bhavya Rao",
       "status": "ABSENT"
     }
@@ -158,46 +168,30 @@ Response:
 }
 ```
 
-Validation:
-
-- Each `student_id` must belong to the session section.
-- `status` must be `PRESENT` or `ABSENT`.
-- Confirmed sessions cannot be edited unless an explicit correction workflow is added later.
-
 ### `POST /api/v1/teacher/attendance-sessions/{id}/confirm/`
 
-Confirms attendance for the session and triggers absent notification logs.
+`{id}` is the session UUID.
 
 Response:
 
 ```json
 {
-  "session_id": 30,
+  "session_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
   "confirmed_at": "2026-05-05T09:30:00Z",
   "absent_count": 1,
   "notification_logs_created": 1
 }
 ```
 
-Automation:
-
-- Only absent students trigger WhatsApp notification logs.
-- Notification logs are created only when `whatsapp_absent_automation_enabled` is true.
-- Parents linked to absent students receive notifications.
-
 ## Announcements
 
 ### `POST /api/v1/teacher/announcements/`
 
-Creates a class teacher announcement for the teacher's own section.
-
-Content type: `multipart/form-data` when attachments are included.
-
-Request fields:
+Request:
 
 ```json
 {
-  "section_id": 7,
+  "section_id": "33333333-3333-3333-3333-333333333333",
   "title": "Math Notebook",
   "body": "Bring your math notebook tomorrow.",
   "publish_now": true
@@ -208,10 +202,10 @@ Response:
 
 ```json
 {
-  "id": 12,
+  "id": "99999999-9999-9999-9999-999999999999",
   "title": "Math Notebook",
   "audience": "SECTION",
-  "section_id": 7,
+  "section_id": "33333333-3333-3333-3333-333333333333",
   "published_at": "2026-05-05T10:00:00Z",
   "attachments": []
 }
@@ -220,34 +214,23 @@ Response:
 Validation:
 
 - Teacher must be the class teacher for the section.
-- Audience is always `SECTION`.
-- Push notifications are sent on publish.
 
 ## Study Materials
 
 ### `POST /api/v1/teacher/study-materials/`
 
-Uploads material for a section and subject.
-
 Content type: `multipart/form-data`
 
-Fields:
-
-- `section_id`
-- `subject_id`
-- `title`
-- `description`
-- `material_date`
-- `file`
+Fields: `section_id` (UUID), `subject_id` (UUID), `title`, `description`, `material_date`, `file`
 
 Response:
 
 ```json
 {
-  "id": 40,
-  "section_id": 7,
+  "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+  "section_id": "33333333-3333-3333-3333-333333333333",
   "subject": {
-    "id": 4,
+    "id": "44444444-4444-4444-4444-444444444444",
     "name": "Mathematics"
   },
   "title": "Fractions Worksheet",
@@ -255,39 +238,26 @@ Response:
   "material_date": "2026-05-05",
   "file_url": "/media/study_materials/fractions.pdf",
   "uploaded_by": {
-    "id": 10,
+    "id": "55555555-5555-5555-5555-555555555555",
     "name": "Anita Sharma"
   }
 }
 ```
 
-Visibility:
-
-- Students and parents of the section can view the material.
-
 ### `GET /api/v1/teacher/study-materials/`
 
-Lists materials uploaded by the teacher.
-
-Query params:
-
-- `section_id`
-- `subject_id`
-- `date_from`
-- `date_to`
+Query params: `section_id` (UUID), `subject_id` (UUID), `date_from`, `date_to`
 
 ## Homework
 
 ### `POST /api/v1/teacher/homework/`
 
-Creates homework for a section.
-
 Request:
 
 ```json
 {
-  "section_id": 7,
-  "subject_id": 4,
+  "section_id": "33333333-3333-3333-3333-333333333333",
+  "subject_id": "44444444-4444-4444-4444-444444444444",
   "description": "Complete exercise 5.1.",
   "deadline": "2026-05-06T17:00:00Z"
 }
@@ -297,10 +267,10 @@ Response:
 
 ```json
 {
-  "id": 50,
-  "section_id": 7,
+  "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+  "section_id": "33333333-3333-3333-3333-333333333333",
   "subject": {
-    "id": 4,
+    "id": "44444444-4444-4444-4444-444444444444",
     "name": "Mathematics"
   },
   "description": "Complete exercise 5.1.",
@@ -308,110 +278,21 @@ Response:
 }
 ```
 
-Visibility:
-
-- Students and parents of the section can view the homework.
-
 ### `GET /api/v1/teacher/homework/`
 
-Lists homework created by the teacher.
-
-Query params:
-
-- `section_id`
-- `subject_id`
-- `deadline_from`
-- `deadline_to`
+Query params: `section_id` (UUID), `subject_id` (UUID), `deadline_from`, `deadline_to`
 
 ## Exam Marks
 
-### `GET /api/v1/teacher/exams/{exam_id}/marks/`
+### `GET /api/v1/teacher/exams/{exam_id}/marks/` and `PUT /api/v1/teacher/exams/{exam_id}/marks/`
 
-Returns students and subjects requiring marks entry for the teacher.
-
-Response:
-
-```json
-{
-  "exam": {
-    "id": 20,
-    "name": "Mid Term Exam"
-  },
-  "subjects": [
-    {
-      "subject_id": 4,
-      "subject_name": "Mathematics",
-      "max_marks": 100,
-      "pass_marks": 35
-    }
-  ],
-  "students": [
-    {
-      "student_id": 101,
-      "student_name": "Aarav Mehta",
-      "roll_number": "1",
-      "marks": [
-        {
-          "subject_id": 4,
-          "marks_obtained": null
-        }
-      ]
-    }
-  ]
-}
-```
-
-### `PUT /api/v1/teacher/exams/{exam_id}/marks/`
-
-Creates or updates student marks.
-
-Request:
-
-```json
-{
-  "records": [
-    {
-      "student_id": 101,
-      "subject_id": 4,
-      "marks_obtained": 92,
-      "remarks": "Excellent"
-    }
-  ]
-}
-```
-
-Response:
-
-```json
-{
-  "exam_id": 20,
-  "updated_count": 1
-}
-```
-
-Validation:
-
-- Exam must apply to one of the teacher's assigned sections.
-- Subject must be part of the exam.
-- Marks must be between `0` and `max_marks`.
-
-Required future models:
-
-- `Exam`
-- `ExamSubject`
-- `ExamSection`
-- `StudentMark`
+`{exam_id}` is a UUID. Returns `501 EXAM_MODEL_NOT_IMPLEMENTED`.
 
 ## Parent Queries
 
 ### `GET /api/v1/teacher/parent-queries/`
 
-Lists queries assigned to the teacher.
-
-Query params:
-
-- `status`: optional, one of `OPEN`, `ANSWERED`, `CLOSED`.
-- `section_id`: optional.
+Query params: `status` (`OPEN`, `ANSWERED`, `CLOSED`), `section_id` (UUID)
 
 Response:
 
@@ -420,19 +301,19 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 60,
+      "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
       "subject": "Homework doubt",
       "message": "Please explain the homework.",
       "status": "OPEN",
       "parent": {
-        "id": 9,
+        "id": "77777777-7777-7777-7777-777777777777",
         "name": "Ramesh Kumar"
       },
       "student": {
-        "id": 101,
+        "id": "66666666-6666-6666-6666-666666666666",
         "name": "Aarav Mehta"
       },
-      "section_id": 7,
+      "section_id": "33333333-3333-3333-3333-333333333333",
       "created_at": "2026-05-05T12:00:00Z"
     }
   ]
@@ -441,7 +322,7 @@ Response:
 
 ### `POST /api/v1/teacher/parent-queries/{id}/replies/`
 
-Replies to a parent query.
+`{id}` is the query UUID.
 
 Request:
 
@@ -456,29 +337,22 @@ Response:
 
 ```json
 {
-  "id": 70,
-  "query_id": 60,
-  "sender_id": 25,
+  "id": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
+  "query_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "sender_id": "88888888-8888-8888-8888-888888888888",
   "message": "I will explain it again tomorrow.",
   "query_status": "ANSWERED",
   "created_at": "2026-05-05T12:15:00Z"
 }
 ```
 
-Validation:
-
-- Query must be assigned to the teacher.
-- Closed queries cannot receive replies unless reopened.
-
 ## Teacher Test Scenarios
 
 - Teacher sees only assigned and class teacher sections.
-- Student list is alphabetical and scoped to the selected section.
-- Attendance session uniqueness is enforced per section/date/slot.
+- UUID path params (`section_id`, `session_id`, `query_id`, `exam_id`) reject non-UUID values with 404.
+- Attendance session uniqueness enforced per section/date/slot.
 - Once-per-day schools reject afternoon attendance.
-- Confirming attendance creates notification logs only for absent students.
-- Confirmed attendance cannot be edited by default.
-- Teacher announcements are limited to class teacher sections.
-- Study materials and homework reject unassigned sections.
-- Marks entry rejects invalid marks and unauthorized sections.
+- Confirmed attendance cannot be edited.
+- Teacher announcements limited to class teacher sections.
+- Study materials and homework reject unassigned section UUIDs.
 - Parent query replies update status when `mark_answered` is true.

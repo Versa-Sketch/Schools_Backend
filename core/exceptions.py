@@ -43,14 +43,36 @@ class SchoolScopeException(AppException):
 
 
 def custom_exception_handler(exc, context):
+    from rest_framework.exceptions import (
+        NotAuthenticated,
+        AuthenticationFailed,
+        PermissionDenied as DRFPermissionDenied,
+    )
     from .presenters.common import CommonErrorPresenter
 
-    # Call REST framework's default exception handler first,
-    # to get the standard error response.
     response = exception_handler(exc, context)
 
-    # If the exception is our custom AppException
     if isinstance(exc, AppException):
         return CommonErrorPresenter().error(exc)
+
+    if isinstance(exc, (NotAuthenticated, AuthenticationFailed)):
+        return Response(
+            {
+                'success': False,
+                'code': constants.AUTHENTICATION_FAILED,
+                'details': str(exc.detail) if hasattr(exc, 'detail') else 'Authentication required.',
+            },
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    if isinstance(exc, DRFPermissionDenied):
+        return Response(
+            {
+                'success': False,
+                'code': constants.PERMISSION_DENIED,
+                'details': str(exc.detail) if hasattr(exc, 'detail') else 'You do not have permission to perform this action.',
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     return response

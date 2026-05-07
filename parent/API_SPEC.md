@@ -4,55 +4,71 @@
 
 This app owns parent-facing APIs for linked students, attendance, announcements, study materials, homework, calendar events, results, and parent-to-teacher communication.
 
-All endpoints use `/api/v1/`, require JWT authentication, and require role `PARENT`.
+All endpoints use `/api/v1/parent/`, require JWT authentication, and require role `PARENT`.
 
-## Error Format
+## ID Format
 
-All errors follow the common error format defined in `core/API_SPEC.md`:
-
-```json
-{
-  "success": false,
-  "code": "UNLINKED_STUDENT",
-  "details": "This student is not linked to the authenticated parent."
-}
-```
+All `id` and `*_id` fields are UUID strings (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`). URL path params `{student_id}` and `{query_id}` are UUIDs.
 
 ## Permissions
 
 - Parents can only access students linked through `ParentProfile.students`.
 - Parents cannot access unlinked students, even within the same school.
-- Parents can create and reply to queries only when parent queries are enabled for the school.
-- Cross-school and unlinked student access uses `NOT_FOUND`, `PERMISSION_DENIED`, or `UNLINKED_STUDENT`.
+- Cross-school and unlinked student access returns `NOT_FOUND`, `PERMISSION_DENIED`, or `UNLINKED_STUDENT`.
 
-## Profile And Linked Students
+## Profile Picture
 
-### `GET /api/v1/parent/profile/`
+### `PATCH /api/v1/parent/profile/pic/`
 
-Returns the current parent profile and linked students.
+Uploads or replaces the parent's profile picture.
+
+Content type: `multipart/form-data`
+
+Field: `profile_pic` — image file (JPEG, PNG, WebP, or GIF; maximum 50 MB).
 
 Response:
 
 ```json
 {
-  "id": 9,
+  "profile_pic_url": "https://bucket.s3.region.amazonaws.com/profile_pics/uuid.jpg"
+}
+```
+
+The returned URL is also included in the `profile_pic_url` field of `GET /api/v1/me/`.
+
+Validation:
+
+- `profile_pic` field is required.
+- File MIME type must be one of: `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Returns `VALIDATION_ERROR` otherwise.
+- File size must not exceed 50 MB. Returns `VALIDATION_ERROR` otherwise.
+- S3 upload failure returns `UPLOAD_FAILED`.
+
+## Profile And Linked Students
+
+### `GET /api/v1/parent/profile/`
+
+Response:
+
+```json
+{
+  "id": "77777777-7777-7777-7777-777777777777",
   "name": "Ramesh Kumar",
   "mobile_number": "9999999999",
   "school": {
-    "id": 1,
+    "id": "11111111-1111-1111-1111-111111111111",
     "name": "Green Valley School"
   },
   "students": [
     {
-      "id": 101,
+      "id": "66666666-6666-6666-6666-666666666666",
       "name": "Aarav Mehta",
       "roll_number": "1",
       "academic_class": {
-        "id": 1,
+        "id": "22222222-2222-2222-2222-222222222222",
         "name": "Class 5"
       },
       "section": {
-        "id": 7,
+        "id": "33333333-3333-3333-3333-333333333333",
         "name": "A"
       }
     }
@@ -62,8 +78,6 @@ Response:
 
 ### `GET /api/v1/parent/students/`
 
-Lists students linked to the parent.
-
 Response:
 
 ```json
@@ -71,16 +85,16 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 101,
+      "id": "66666666-6666-6666-6666-666666666666",
       "name": "Aarav Mehta",
       "roll_number": "1",
       "admission_number": "ADM001",
       "academic_class": {
-        "id": 1,
+        "id": "22222222-2222-2222-2222-222222222222",
         "name": "Class 5"
       },
       "section": {
-        "id": 7,
+        "id": "33333333-3333-3333-3333-333333333333",
         "name": "A"
       }
     }
@@ -92,14 +106,9 @@ Response:
 
 ### `GET /api/v1/parent/students/{student_id}/attendance/`
 
-Returns attendance for a linked student.
+`{student_id}` is a UUID.
 
-Query params:
-
-- `date_from`: optional ISO date.
-- `date_to`: optional ISO date.
-- `slot`: optional, one of `MORNING`, `AFTERNOON`.
-- `status`: optional, one of `PRESENT`, `ABSENT`.
+Query params: `date_from`, `date_to`, `slot`, `status`
 
 Response:
 
@@ -122,23 +131,11 @@ Response:
 }
 ```
 
-Rules:
-
-- Only confirmed attendance sessions are visible.
-- `student_id` must be linked to the parent.
-
 ## Announcements
 
 ### `GET /api/v1/parent/students/{student_id}/announcements/`
 
-Returns announcements visible to the linked student's parent.
-
-Visible announcements:
-
-- School-wide announcements.
-- Class announcements for the student's class.
-- Section announcements for the student's section.
-- Parent-targeted principal communication if role targeting is added later.
+`{student_id}` is a UUID.
 
 Response:
 
@@ -147,7 +144,7 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 11,
+      "id": "99999999-9999-9999-9999-999999999999",
       "title": "School Reopens",
       "body": "School reopens on Monday.",
       "author_role": "PRINCIPAL",
@@ -163,13 +160,7 @@ Response:
 
 ### `GET /api/v1/parent/students/{student_id}/study-materials/`
 
-Returns materials for the linked student's section.
-
-Query params:
-
-- `subject_id`: optional.
-- `date_from`: optional ISO date.
-- `date_to`: optional ISO date.
+`{student_id}` is a UUID. Query params: `subject_id` (UUID), `date_from`, `date_to`
 
 Response:
 
@@ -178,17 +169,17 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 40,
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
       "title": "Fractions Worksheet",
       "description": "Practice worksheet.",
       "subject": {
-        "id": 4,
+        "id": "44444444-4444-4444-4444-444444444444",
         "name": "Mathematics"
       },
       "material_date": "2026-05-05",
       "file_url": "/media/study_materials/fractions.pdf",
       "uploaded_by": {
-        "id": 10,
+        "id": "55555555-5555-5555-5555-555555555555",
         "name": "Anita Sharma"
       }
     }
@@ -200,13 +191,7 @@ Response:
 
 ### `GET /api/v1/parent/students/{student_id}/homework/`
 
-Returns homework for the linked student's section.
-
-Query params:
-
-- `subject_id`: optional.
-- `deadline_from`: optional datetime.
-- `deadline_to`: optional datetime.
+`{student_id}` is a UUID. Query params: `subject_id` (UUID), `deadline_from`, `deadline_to`
 
 Response:
 
@@ -215,15 +200,15 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 50,
+      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
       "subject": {
-        "id": 4,
+        "id": "44444444-4444-4444-4444-444444444444",
         "name": "Mathematics"
       },
       "description": "Complete exercise 5.1.",
       "deadline": "2026-05-06T17:00:00Z",
       "assigned_by": {
-        "id": 10,
+        "id": "55555555-5555-5555-5555-555555555555",
         "name": "Anita Sharma"
       }
     }
@@ -235,13 +220,7 @@ Response:
 
 ### `GET /api/v1/parent/students/{student_id}/calendar-events/`
 
-Returns parent-visible calendar events for the linked student's school.
-
-Query params:
-
-- `event_type`: optional, one of `HOLIDAY`, `EXAM`, `EVENT`.
-- `start_date`: optional.
-- `end_date`: optional.
+`{student_id}` is a UUID. Query params: `event_type`, `start_date`, `end_date`
 
 Response:
 
@@ -250,7 +229,7 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 3,
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
       "title": "Annual Day",
       "event_type": "EVENT",
       "start_date": "2026-08-10",
@@ -265,64 +244,17 @@ Response:
 
 ### `GET /api/v1/parent/students/{student_id}/results/`
 
-Returns result summary for a linked student.
-
-Query params:
-
-- `exam_id`: optional.
-
-Response:
-
-```json
-{
-  "student": {
-    "id": 101,
-    "name": "Aarav Mehta",
-    "roll_number": "1"
-  },
-  "exam": {
-    "id": 20,
-    "name": "Mid Term Exam"
-  },
-  "summary": {
-    "total_marks": 430,
-    "max_marks": 500,
-    "percentage": 86.0,
-    "section_rank": 3,
-    "class_rank": 8
-  },
-  "subjects": [
-    {
-      "subject_id": 4,
-      "subject_name": "Mathematics",
-      "marks_obtained": 92,
-      "max_marks": 100,
-      "pass_marks": 35,
-      "grade": "A"
-    }
-  ],
-  "growth_trend": []
-}
-```
-
-Required future models:
-
-- `Exam`
-- `ExamSubject`
-- `ExamSection`
-- `StudentMark`
+`{student_id}` is a UUID. Returns `501 EXAM_MODEL_NOT_IMPLEMENTED`.
 
 ## Parent Queries
 
 ### `POST /api/v1/parent/queries/`
 
-Raises a query to the linked student's class teacher.
-
 Request:
 
 ```json
 {
-  "student_id": 101,
+  "student_id": "66666666-6666-6666-6666-666666666666",
   "subject": "Homework doubt",
   "message": "Please explain today's homework."
 }
@@ -332,14 +264,14 @@ Response:
 
 ```json
 {
-  "id": 60,
+  "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
   "student": {
-    "id": 101,
+    "id": "66666666-6666-6666-6666-666666666666",
     "name": "Aarav Mehta"
   },
-  "section_id": 7,
+  "section_id": "33333333-3333-3333-3333-333333333333",
   "assigned_teacher": {
-    "id": 10,
+    "id": "55555555-5555-5555-5555-555555555555",
     "name": "Anita Sharma"
   },
   "subject": "Homework doubt",
@@ -351,19 +283,13 @@ Response:
 
 Validation:
 
+- `student_id` must be a UUID linked to the parent.
 - Parent queries must be enabled in `SchoolConfiguration`.
-- `student_id` must be linked to the parent.
-- Student section must have a class teacher.
-- If parent queries are disabled, use `PARENT_QUERY_DISABLED`.
+- Student section must have a class teacher assigned.
 
 ### `GET /api/v1/parent/queries/`
 
-Lists the parent's query history.
-
-Query params:
-
-- `student_id`: optional linked student filter.
-- `status`: optional, one of `OPEN`, `ANSWERED`, `CLOSED`.
+Query params: `student_id` (UUID), `status` (`OPEN`/`ANSWERED`/`CLOSED`)
 
 Response:
 
@@ -372,15 +298,15 @@ Response:
   "count": 1,
   "results": [
     {
-      "id": 60,
+      "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
       "subject": "Homework doubt",
       "status": "OPEN",
       "student": {
-        "id": 101,
+        "id": "66666666-6666-6666-6666-666666666666",
         "name": "Aarav Mehta"
       },
       "assigned_teacher": {
-        "id": 10,
+        "id": "55555555-5555-5555-5555-555555555555",
         "name": "Anita Sharma"
       },
       "created_at": "2026-05-05T12:00:00Z"
@@ -391,28 +317,28 @@ Response:
 
 ### `GET /api/v1/parent/queries/{id}/`
 
-Returns the full query record with replies.
+`{id}` is the query UUID.
 
 Response:
 
 ```json
 {
-  "id": 60,
+  "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
   "subject": "Homework doubt",
   "message": "Please explain today's homework.",
   "status": "OPEN",
   "student": {
-    "id": 101,
+    "id": "66666666-6666-6666-6666-666666666666",
     "name": "Aarav Mehta"
   },
   "assigned_teacher": {
-    "id": 10,
+    "id": "55555555-5555-5555-5555-555555555555",
     "name": "Anita Sharma"
   },
   "replies": [
     {
-      "id": 70,
-      "sender_id": 25,
+      "id": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
+      "sender_id": "88888888-8888-8888-8888-888888888888",
       "sender_role": "TEACHER",
       "message": "I will explain it again tomorrow.",
       "created_at": "2026-05-05T12:15:00Z"
@@ -423,7 +349,7 @@ Response:
 
 ### `POST /api/v1/parent/queries/{id}/replies/`
 
-Adds a parent reply to an open or answered query.
+`{id}` is the query UUID.
 
 Request:
 
@@ -437,27 +363,23 @@ Response:
 
 ```json
 {
-  "id": 71,
-  "query_id": 60,
-  "sender_id": 30,
+  "id": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b2",
+  "query_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "sender_id": "f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0",
   "message": "Thank you.",
   "created_at": "2026-05-05T12:20:00Z"
 }
 ```
 
-Validation:
-
-- Query must belong to the parent.
-- Closed queries cannot receive replies unless reopened.
-- If parent queries are disabled, use `PARENT_QUERY_DISABLED` for new query creation. Existing query history remains readable.
-
 ## Parent Test Scenarios
 
 - Parent profile returns only linked students.
-- Parent cannot access unlinked student attendance, homework, materials, results, or calendar context.
+- UUID path params (`student_id`, `query_id`) reject non-UUID values with 404.
+- Parent cannot access unlinked student data — returns `UNLINKED_STUDENT`.
 - Attendance shows only confirmed sessions.
 - Announcements match the linked student's school, class, and section.
 - Parent query creation fails when school configuration disables queries.
 - Parent query creation fails when the student has no class teacher.
 - Parent can read and reply only to their own queries.
 - Closed queries reject new replies.
+- All `id` fields in responses are UUID strings.
