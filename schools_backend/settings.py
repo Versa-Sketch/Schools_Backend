@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'student',
     'parent',
     'notifications',
+    'analytics',
 ]
 
 
