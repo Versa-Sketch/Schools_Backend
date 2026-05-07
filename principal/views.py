@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
-from core.permissions import IsPrincipal
+from core.permissions import IsAdmin, IsPrincipal
 from .storages.principal_storage import PrincipalDB
 from .interactors import (
     GetConfigurationInteractor,
@@ -30,7 +30,7 @@ from .presenters.analytics import AnalyticsPresenter
 
 
 @api_view(['GET', 'PATCH'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 @parser_classes([JSONParser])
 def configuration_view(request):
     if request.method == 'GET':
@@ -43,7 +43,7 @@ def configuration_view(request):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 @parser_classes([JSONParser])
 def teacher_list_view(request):
     if request.method == 'POST':
@@ -61,7 +61,7 @@ def teacher_list_view(request):
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 @parser_classes([JSONParser])
 def teacher_detail_view(request, teacher_id):
     return UpdateTeacherInteractor(
@@ -70,7 +70,7 @@ def teacher_detail_view(request, teacher_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 @parser_classes([MultiPartParser, FormParser])
 def bulk_upload_view(request):
     return BulkUploadStudentsInteractor(
@@ -79,7 +79,7 @@ def bulk_upload_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 def bulk_upload_status_view(request, batch_id):
     return GetBulkUploadStatusInteractor(
         storage=PrincipalDB(), presenter=BulkUploadPresenter(),
@@ -87,7 +87,7 @@ def bulk_upload_status_view(request, batch_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def announcement_create_view(request):
     return CreateAnnouncementInteractor(
@@ -96,7 +96,7 @@ def announcement_create_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 @parser_classes([JSONParser])
 def calendar_event_create_view(request):
     return CreateCalendarEventInteractor(
@@ -105,7 +105,7 @@ def calendar_event_create_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 def section_list_view(request):
     return ListSectionsInteractor(
         storage=PrincipalDB(), presenter=SectionsPresenter(),
@@ -113,7 +113,7 @@ def section_list_view(request):
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 @parser_classes([JSONParser])
 def section_detail_view(request, section_id):
     return UpdateSectionInteractor(
@@ -122,19 +122,19 @@ def section_detail_view(request, section_id):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 def exam_view(request):
     return ExamNotImplementedInteractor(presenter=ExamPresenter()).respond(user=request.user)
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 def results_view(request):
     return ExamNotImplementedInteractor(presenter=ExamPresenter()).respond(user=request.user)
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPrincipal])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 def analytics_view(request):
     return AnalyticsInteractor(
         storage=PrincipalDB(), presenter=AnalyticsPresenter(),

@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
-from core.permissions import IsTeacher
+from core.permissions import IsAdmin, IsTeacher
 from .storages.teacher_storage import TeacherDB
 from .interactors import (
     ListSectionsInteractor,
@@ -31,7 +31,7 @@ from .presenters.profile_pic import ProfilePicPresenter
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 @parser_classes([MultiPartParser, FormParser])
 def profile_pic_view(request):
     return UpdateTeacherProfilePicInteractor(
@@ -40,7 +40,7 @@ def profile_pic_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 def sections_view(request):
     return ListSectionsInteractor(
         storage=TeacherDB(), presenter=SectionsPresenter(),
@@ -48,7 +48,7 @@ def sections_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 def section_students_view(request, section_id):
     return ListSectionStudentsInteractor(
         storage=TeacherDB(), presenter=SectionsPresenter(),
@@ -56,7 +56,7 @@ def section_students_view(request, section_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 @parser_classes([JSONParser])
 def attendance_session_create_view(request):
     return CreateAttendanceSessionInteractor(
@@ -65,7 +65,7 @@ def attendance_session_create_view(request):
 
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 @parser_classes([JSONParser])
 def attendance_students_view(request, session_id):
     return MarkAttendanceInteractor(
@@ -74,7 +74,7 @@ def attendance_students_view(request, session_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 def attendance_confirm_view(request, session_id):
     return ConfirmAttendanceInteractor(
         storage=TeacherDB(), presenter=AttendancePresenter(),
@@ -82,7 +82,7 @@ def attendance_confirm_view(request, session_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def announcement_create_view(request):
     return CreateTeacherAnnouncementInteractor(
@@ -91,7 +91,7 @@ def announcement_create_view(request):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def study_material_view(request):
     if request.method == 'POST':
@@ -110,7 +110,7 @@ def study_material_view(request):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 @parser_classes([JSONParser])
 def homework_view(request):
     if request.method == 'POST':
@@ -129,7 +129,7 @@ def homework_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 def parent_query_list_view(request):
     return ListParentQueriesInteractor(
         storage=TeacherDB(), presenter=ParentQueriesPresenter(),
@@ -141,7 +141,7 @@ def parent_query_list_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 @parser_classes([JSONParser])
 def parent_query_reply_view(request, query_id):
     return ReplyToQueryInteractor(
@@ -150,6 +150,6 @@ def parent_query_reply_view(request, query_id):
 
 
 @api_view(['GET', 'PUT'])
-@permission_classes([IsAuthenticated, IsTeacher])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 def exam_marks_view(request, exam_id):
     return ExamMarksNotImplementedInteractor(presenter=ExamPresenter()).respond(user=request.user)

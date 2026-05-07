@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 
 from core.models import (
     ATTENDANCE_SLOT_MORNING,
+    ROLE_ADMIN,
     ROLE_PARENT,
     ROLE_PRINCIPAL,
     ROLE_STUDENT,
@@ -22,7 +23,7 @@ from core.models import (
     Subject,
 )
 from parent.models import ParentProfile
-from principal.models import PrincipalProfile
+from principal.models import AdminProfile, PrincipalProfile
 from student.models import StudentProfile
 from teacher.models import TeacherProfile
 
@@ -32,7 +33,7 @@ User = get_user_model()
 class SchoolModelTests(TestCase):
     def test_core_school_structure_can_be_created(self):
         school = School.objects.create(name='Green Valley School', subdomain='green-valley')
-        SchoolConfiguration.objects.create(school=school)
+        SchoolConfiguration.objects.get(school=school)
         academic_class = AcademicClass.objects.create(school=school, name='Class 1', display_order=1)
         subject = Subject.objects.create(school=school, name='Math', code='MATH')
         section = Section.objects.create(school=school, academic_class=academic_class, name='A')
@@ -95,11 +96,38 @@ class RoleProfileTests(TestCase):
         self.assertIn(section, teacher.assigned_sections.all())
         self.assertIn(student, parent.students.all())
 
+    def test_admin_role_can_use_admin_profile_for_school_context(self):
+        from core.storages.core_storage import CoreDB
+        from core.storages.user_storage import UserDB
+
+        school = School.objects.create(name='Green Valley School', subdomain='green-valley')
+        admin_user = User.objects.create_user(username='admin', role=ROLE_ADMIN)
+        admin_profile = AdminProfile.objects.create(
+            user=admin_user,
+            school=school,
+            mobile_number='9000000009',
+        )
+
+        self.assertEqual(UserDB().get_user_profile(admin_user), admin_profile)
+        self.assertEqual(CoreDB().get_user_profile(admin_user), admin_profile)
+
+    def test_admin_role_is_separate_from_other_role_permissions(self):
+        from core.permissions import IsAdmin, IsParent, IsPrincipal, IsStudent, IsTeacher
+
+        admin_user = User.objects.create_user(username='admin', role=ROLE_ADMIN)
+        request = type('Request', (), {'user': admin_user})()
+
+        self.assertTrue(IsAdmin().has_permission(request, None))
+        self.assertFalse(IsPrincipal().has_permission(request, None))
+        self.assertFalse(IsTeacher().has_permission(request, None))
+        self.assertFalse(IsStudent().has_permission(request, None))
+        self.assertFalse(IsParent().has_permission(request, None))
+
 
 class AttendanceModelTests(TestCase):
     def setUp(self):
         self.school = School.objects.create(name='Green Valley School', subdomain='green-valley')
-        self.config = SchoolConfiguration.objects.create(school=self.school)
+        self.config = SchoolConfiguration.objects.get(school=self.school)
         self.academic_class = AcademicClass.objects.create(school=self.school, name='Class 1')
         self.subject = Subject.objects.create(school=self.school, name='Math')
         self.section = Section.objects.create(school=self.school, academic_class=self.academic_class, name='A')
@@ -134,7 +162,7 @@ class AttendanceModelTests(TestCase):
 class WorkflowValidationTests(TestCase):
     def setUp(self):
         self.school = School.objects.create(name='Green Valley School', subdomain='green-valley')
-        self.config = SchoolConfiguration.objects.create(school=self.school)
+        self.config = SchoolConfiguration.objects.get(school=self.school)
         self.academic_class = AcademicClass.objects.create(school=self.school, name='Class 1')
         self.subject = Subject.objects.create(school=self.school, name='Math')
         self.section = Section.objects.create(school=self.school, academic_class=self.academic_class, name='A')
@@ -170,7 +198,7 @@ class WorkflowValidationTests(TestCase):
         )
         batch = StudentBulkUploadBatch.objects.create(
             school=self.school,
-            uploaded_by=principal,
+            uploaded_by=principal.user,
             csv_file='student_uploads/sample.csv',
             total_rows=2,
             success_count=1,

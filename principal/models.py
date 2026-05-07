@@ -23,3 +23,24 @@ class PrincipalProfile(models.Model):
 
     def __str__(self):
         return f'{self.user.get_full_name() or self.user.username} - {self.school}'
+
+
+class AdminProfile(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        'core.User',
+        on_delete=models.CASCADE,
+    )
+    school = models.ForeignKey(
+        'core.School',
+        on_delete=models.CASCADE,
+    )
+    mobile_number = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['user__username']
+
+    def __str__(self):
+        return f'{self.user.get_full_name() or self.user.username} - {self.school}'

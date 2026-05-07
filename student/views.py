@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from core.permissions import IsStudent
+from core.permissions import IsAdmin, IsStudent
 from .storages.student_storage import StudentDB
 from .interactors import (
     StudentProfileInteractor,
@@ -25,7 +25,7 @@ from .presenters.profile_pic import ProfilePicPresenter
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsStudent])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 @parser_classes([MultiPartParser, FormParser])
 def profile_pic_view(request):
     return UpdateStudentProfilePicInteractor(
@@ -34,7 +34,7 @@ def profile_pic_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsStudent])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 def profile_view(request):
     return StudentProfileInteractor(
         storage=StudentDB(), presenter=StudentProfilePresenter(),
@@ -42,7 +42,7 @@ def profile_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsStudent])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 def attendance_view(request):
     return StudentAttendanceInteractor(
         storage=StudentDB(), presenter=StudentAttendancePresenter(),
@@ -56,7 +56,7 @@ def attendance_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsStudent])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 def announcements_view(request):
     return StudentAnnouncementsInteractor(
         storage=StudentDB(), presenter=StudentAnnouncementsPresenter(),
@@ -68,7 +68,7 @@ def announcements_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsStudent])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 def study_materials_view(request):
     return StudentStudyMaterialsInteractor(
         storage=StudentDB(), presenter=StudentStudyMaterialsPresenter(),
@@ -81,7 +81,7 @@ def study_materials_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsStudent])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 def homework_view(request):
     return StudentHomeworkInteractor(
         storage=StudentDB(), presenter=StudentHomeworkPresenter(),
@@ -94,7 +94,7 @@ def homework_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsStudent])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 def calendar_events_view(request):
     return StudentCalendarInteractor(
         storage=StudentDB(), presenter=StudentCalendarPresenter(),
@@ -107,12 +107,12 @@ def calendar_events_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsStudent])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 def exams_view(request):
     return StudentExamNotImplementedInteractor(presenter=StudentExamPresenter()).respond(user=request.user)
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsStudent])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 def results_view(request):
     return StudentExamNotImplementedInteractor(presenter=StudentExamPresenter()).respond(user=request.user)

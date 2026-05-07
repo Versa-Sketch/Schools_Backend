@@ -12,6 +12,7 @@ from core.models import (
 class CoreDB:
     def get_user_profile(self, user):
         attr_map = {
+            'ADMIN': 'adminprofile',
             'PRINCIPAL': 'principalprofile',
             'TEACHER': 'teacherprofile',
             'STUDENT': 'studentprofile',
@@ -38,7 +39,7 @@ class CoreDB:
 
     def get_calendar_events_for_role(self, school_id, role, event_type=None, start_date=None, end_date=None):
         qs = AcademicCalendarEvent.objects.filter(school_id=school_id)
-        if role != 'PRINCIPAL':
+        if role not in ('ADMIN', 'PRINCIPAL'):
             qs = qs.filter(visible_to__contains=[role])
         if event_type:
             qs = qs.filter(event_type=event_type)
@@ -58,7 +59,7 @@ class CoreDB:
             published_at__isnull=False,
         ).prefetch_related('announcementattachment_set')
 
-        if user_role != 'PRINCIPAL':
+        if user_role not in ('ADMIN', 'PRINCIPAL'):
             q = Q(audience='SCHOOL')
             if class_ids:
                 q |= Q(audience='CLASS', announcementtarget__academic_class_id__in=class_ids)

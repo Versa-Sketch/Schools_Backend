@@ -2,5 +2,5 @@ from teacher.exceptions import TeacherPermissionException
 
 
 def _ensure_teacher(user):
-    if user.role != 'TEACHER':
+    if user.role not in ('ADMIN', 'TEACHER'):
         raise TeacherPermissionException()

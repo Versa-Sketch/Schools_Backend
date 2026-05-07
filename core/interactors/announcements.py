@@ -74,7 +74,7 @@ class AnnouncementDetailInteractor:
         if announcement is None:
             raise NotFoundException('Announcement not found.')
 
-        if user.role != 'PRINCIPAL':
+        if user.role not in ('ADMIN', 'PRINCIPAL'):
             class_ids, section_ids = _get_class_section_ids(user, profile)
             aud = announcement.audience
             if aud == 'CLASS':

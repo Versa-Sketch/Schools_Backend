@@ -6,11 +6,13 @@ from django.db import models
 from django.utils import timezone
 
 
+ROLE_ADMIN = 'ADMIN'
 ROLE_PRINCIPAL = 'PRINCIPAL'
 ROLE_TEACHER = 'TEACHER'
 ROLE_STUDENT = 'STUDENT'
 ROLE_PARENT = 'PARENT'
 ROLE_CHOICES = [
+    (ROLE_ADMIN, 'Admin'),
     (ROLE_PRINCIPAL, 'Principal'),
     (ROLE_TEACHER, 'Teacher'),
     (ROLE_STUDENT, 'Student'),
@@ -436,7 +438,7 @@ class Homework(TimeStampedModel):
 class StudentBulkUploadBatch(TimeStampedModel):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     uploaded_by = models.ForeignKey(
-        'principal.PrincipalProfile',
+        settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
     )
     csv_file = models.FileField(upload_to='student_uploads/')

@@ -13,6 +13,7 @@ class UserDB:
 
     def get_user_profile(self, user):
         profile_attribute_by_role = {
+            'ADMIN': 'adminprofile',
             'PRINCIPAL': 'principalprofile',
             'TEACHER': 'teacherprofile',
             'STUDENT': 'studentprofile',

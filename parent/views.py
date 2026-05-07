@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
-from core.permissions import IsParent
+from core.permissions import IsAdmin, IsParent
 from .storages.parent_storage import ParentDB
 from .interactors import (
     ParentProfileInteractor,
@@ -31,7 +31,7 @@ from .presenters.profile_pic import ProfilePicPresenter
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 @parser_classes([MultiPartParser, FormParser])
 def profile_pic_view(request):
     return UpdateParentProfilePicInteractor(
@@ -40,7 +40,7 @@ def profile_pic_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 def profile_view(request):
     return ParentProfileInteractor(
         storage=ParentDB(), presenter=ParentProfilePresenter(),
@@ -48,7 +48,7 @@ def profile_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 def students_view(request):
     return ListLinkedStudentsInteractor(
         storage=ParentDB(), presenter=ParentProfilePresenter(),
@@ -56,7 +56,7 @@ def students_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 def student_attendance_view(request, student_id):
     return ParentStudentAttendanceInteractor(
         storage=ParentDB(), presenter=ParentAttendancePresenter(),
@@ -70,7 +70,7 @@ def student_attendance_view(request, student_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 def student_announcements_view(request, student_id):
     return ParentStudentAnnouncementsInteractor(
         storage=ParentDB(), presenter=ParentAnnouncementsPresenter(),
@@ -82,7 +82,7 @@ def student_announcements_view(request, student_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 def student_study_materials_view(request, student_id):
     return ParentStudentMaterialsInteractor(
         storage=ParentDB(), presenter=ParentStudyMaterialsPresenter(),
@@ -95,7 +95,7 @@ def student_study_materials_view(request, student_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 def student_homework_view(request, student_id):
     return ParentStudentHomeworkInteractor(
         storage=ParentDB(), presenter=ParentHomeworkPresenter(),
@@ -108,7 +108,7 @@ def student_homework_view(request, student_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 def student_calendar_view(request, student_id):
     return ParentStudentCalendarInteractor(
         storage=ParentDB(), presenter=ParentCalendarPresenter(),
@@ -121,13 +121,13 @@ def student_calendar_view(request, student_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 def student_results_view(request, student_id):
     return ParentStudentResultsInteractor(presenter=ParentExamPresenter()).respond(user=request.user)
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 @parser_classes([JSONParser])
 def query_list_view(request):
     if request.method == 'POST':
@@ -144,7 +144,7 @@ def query_list_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 def query_detail_view(request, query_id):
     return GetParentQueryDetailInteractor(
         storage=ParentDB(), presenter=ParentQueriesPresenter(),
@@ -152,7 +152,7 @@ def query_detail_view(request, query_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsParent])
+@permission_classes([IsAuthenticated, IsParent | IsAdmin])
 @parser_classes([JSONParser])
 def query_reply_view(request, query_id):
     return AddParentQueryReplyInteractor(

@@ -54,22 +54,7 @@ def upload_to_s3(
     allowed_types: set = None,
     max_size_bytes: int = DEFAULT_MAX_SIZE_BYTES,
 ) -> str:
-    """
-    Upload a file to S3 and return the public URL.
-
-    Args:
-        file_obj:        Django InMemoryUploadedFile or TemporaryUploadedFile.
-        folder:          S3 key prefix, e.g. 'profile_pics', 'study_materials'.
-        allowed_types:   Set of allowed MIME types. Pass None to skip MIME check.
-        max_size_bytes:  Maximum accepted file size in bytes.
-
-    Returns:
-        str: Public S3 URL of the uploaded object.
-
-    Raises:
-        ValidationException: On invalid type, oversized file, or S3 error.
-    """
-    # --- Validate MIME type ---
+   
     content_type = getattr(file_obj, 'content_type', None) or 'application/octet-stream'
     if allowed_types and content_type not in allowed_types:
         raise ValidationException(

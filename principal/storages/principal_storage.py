@@ -28,6 +28,8 @@ from parent.models import ParentProfile
 
 class PrincipalDB:
     def get_principal_profile(self, user):
+        if user.role == 'ADMIN':
+            return getattr(user, 'adminprofile', None)
         return getattr(user, 'principalprofile', None)
 
     # --- School Configuration ---
@@ -134,7 +136,7 @@ class PrincipalDB:
 
     def create_bulk_upload_batch(self, school, principal_profile, csv_file):
         return StudentBulkUploadBatch.objects.create(
-            school=school, uploaded_by=principal_profile, csv_file=csv_file,
+            school=school, uploaded_by=principal_profile.user, csv_file=csv_file,
         )
 
     def process_bulk_upload(self, batch, school):

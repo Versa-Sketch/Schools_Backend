@@ -4,7 +4,7 @@ from parent import constants
 
 
 def _ensure_parent(user):
-    if user.role != 'PARENT':
+    if user.role not in ('ADMIN', 'PARENT'):
         raise ParentPermissionException()
 
 
