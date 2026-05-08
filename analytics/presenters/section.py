@@ -47,6 +47,7 @@ class SectionPresenter:
             )
 
             students.append({
+                'student_id':     sid,
                 'student_ref_id': student_obj[sid].student_ref_id,
                 'name':           student_obj[sid].name,
                 'maths_pct':      pct('MATHS'),

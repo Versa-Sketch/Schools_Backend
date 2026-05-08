@@ -7,12 +7,14 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from core.permissions import IsAdmin, IsPrincipal, IsTeacher
+from core.permissions import IsAdmin, IsPrincipal, IsParent, IsStudent, IsTeacher
 from analytics.interactors.dashboard import DashboardInteractor
 from analytics.interactors.section import SectionInteractor
+from analytics.interactors.student import StudentInteractor
 from analytics.interactors.upload import UploadExamCSVInteractor
 from analytics.presenters.dashboard import DashboardPresenter
 from analytics.presenters.section import SectionPresenter
+from analytics.presenters.student import StudentPresenter
 from analytics.presenters.upload import UploadPresenter
 from analytics.services.csv_parser import generate_template_csv
 from analytics.services.seed import generate_seed_csv
@@ -58,13 +60,13 @@ def dashboard_view(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
-def class_detail_view(request, class_name):
+def class_detail_view(request, class_id):
     return DashboardInteractor(
         storage=AnalyticsDB(),
         presenter=DashboardPresenter(),
     ).get_class_detail(
         user=request.user,
-        class_name=class_name,
+        class_id=class_id,
         exam_id=request.query_params.get('exam_id'),
     )
 
@@ -107,6 +109,41 @@ def question_detail_view(request, section_id, subject_name, q_no):
         section_id=section_id,
         subject_name=subject_name,
         q_no=q_no,
+        exam_id=request.query_params.get('exam_id'),
+    )
+
+
+# ---------------------------------------------------------------- 7c Student Screens
+
+@api_view(['GET'])
+@permission_classes([
+    IsAuthenticated,
+    IsPrincipal | IsAdmin | IsTeacher | IsStudent | IsParent,
+])
+def student_summary_view(request, student_id):
+    return StudentInteractor(
+        storage=AnalyticsDB(),
+        presenter=StudentPresenter(),
+    ).get_student_summary(
+        user=request.user,
+        student_id=student_id,
+        exam_id=request.query_params.get('exam_id'),
+    )
+
+
+@api_view(['GET'])
+@permission_classes([
+    IsAuthenticated,
+    IsPrincipal | IsAdmin | IsTeacher | IsStudent | IsParent,
+])
+def student_subject_view(request, student_id, subject_name):
+    return StudentInteractor(
+        storage=AnalyticsDB(),
+        presenter=StudentPresenter(),
+    ).get_student_subject(
+        user=request.user,
+        student_id=student_id,
+        subject_name=subject_name,
         exam_id=request.query_params.get('exam_id'),
     )
 

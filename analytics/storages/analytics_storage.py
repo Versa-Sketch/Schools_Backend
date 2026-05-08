@@ -331,9 +331,15 @@ class AnalyticsDB:
             })
         return stats
 
-    def get_section_analytics_for_class(self, exam_id, class_name, school_id):
+    def get_class_by_id(self, class_id, school_id):
+        try:
+            return AcademicClass.objects.get(id=class_id, school_id=school_id)
+        except AcademicClass.DoesNotExist:
+            return None
+
+    def get_section_analytics_for_class(self, exam_id, class_id, school_id):
         """
-        Section-level analytics filtered by class for Screen 2.
+        Section-level analytics filtered by class UUID for Screen 2.
         Attaches _top_marks to each row (the top scorer's marks in
         that subject) via a single batch ExamResult query.
         """
@@ -342,7 +348,7 @@ class AnalyticsDB:
             .filter(
                 exam_id=exam_id,
                 exam__school_id=school_id,
-                academic_class__name__iexact=class_name,
+                academic_class_id=class_id,
             )
             .select_related('section', 'academic_class', 'subject', 'top_scorer')
             .order_by('section__name', 'subject__subject_name')
@@ -456,6 +462,85 @@ class AnalyticsDB:
             )
         except AnalyticsStudent.DoesNotExist:
             return None
+
+    def get_student_by_id(self, student_id, school_id):
+        """Lookup AnalyticsStudent by UUID primary key, scoped to school."""
+        try:
+            return AnalyticsStudent.objects.select_related('section__academic_class').get(
+                id=student_id, school_id=school_id
+            )
+        except AnalyticsStudent.DoesNotExist:
+            return None
+
+    # ------------------------------------------------------ Screen 6 queries
+
+    def get_exam_results_for_student(self, exam_id, student_id, school_id):
+        """All ExamResult rows for one student (all subjects) for Screen 6."""
+        return list(
+            ExamResult.objects
+            .filter(
+                exam_id=exam_id,
+                student_id=student_id,
+                exam__school_id=school_id,
+            )
+            .select_related('subject')
+            .order_by('subject__subject_name')
+        )
+
+    def get_student_risks_by_student_id(self, exam_id, student_id, school_id):
+        """All StudentRisk rows for one student (all subjects) for Screen 6."""
+        risks = StudentRisk.objects.filter(
+            exam_id=exam_id,
+            student_id=student_id,
+            exam__school_id=school_id,
+        ).select_related('subject')
+        return {r.subject.subject_name: r for r in risks}
+
+    # ------------------------------------------------------ Screen 7 queries
+
+    def get_exam_result_for_student_subject(
+        self, exam_id, student_id, subject_name, school_id
+    ):
+        """Single ExamResult for one student × subject for Screen 7."""
+        try:
+            return ExamResult.objects.select_related('subject').get(
+                exam_id=exam_id,
+                student_id=student_id,
+                exam__school_id=school_id,
+                subject__subject_name=subject_name,
+            )
+        except ExamResult.DoesNotExist:
+            return None
+
+    def get_risk_for_student_subject(
+        self, exam_id, student_id, subject_name, school_id
+    ):
+        """Single StudentRisk for one student × subject for Screen 7."""
+        try:
+            return StudentRisk.objects.select_related('subject').get(
+                exam_id=exam_id,
+                student_id=student_id,
+                exam__school_id=school_id,
+                subject__subject_name=subject_name,
+            )
+        except StudentRisk.DoesNotExist:
+            return None
+
+    def get_question_results_by_student_id(
+        self, exam_id, student_id, subject_name
+    ):
+        """QuestionResult rows for one student × subject for Screen 7."""
+        return list(
+            QuestionResult.objects
+            .filter(
+                exam_id=exam_id,
+                student_id=student_id,
+                subject__subject_name=subject_name,
+            )
+            .order_by('q_no')
+        )
+
+    # ------------------------------------------------ legacy ref_id methods
 
     def get_student_risks_for_exam(self, exam_id, student_ref_id, school_id):
         return list(

@@ -42,7 +42,7 @@ class DashboardInteractor:
             subject_stats=subject_stats,
         )
 
-    def get_class_detail(self, user, class_name, exam_id):
+    def get_class_detail(self, user, class_id, exam_id):
         self._check_role(user)
         profile = self._get_profile(user)
         school_id = profile.school_id
@@ -59,13 +59,15 @@ class DashboardInteractor:
                 f'Analytics is not ready yet (status: {exam.analytics_status}).'
             )
 
+        academic_class = self._get_class(class_id, school_id)
+
         section_analytics = self.storage.get_section_analytics_for_class(
-            exam_id, class_name, school_id
+            exam_id, class_id, school_id
         )
         student_counts = self.storage.get_student_counts_for_exam(exam_id, school_id)
 
         return self.presenter.class_detail_success(
-            class_name=class_name,
+            class_name=academic_class.name,
             exam=exam,
             section_analytics=section_analytics,
             student_counts=student_counts,
@@ -82,3 +84,11 @@ class DashboardInteractor:
         if profile is None:
             raise NotFoundException('Principal profile not found.')
         return profile
+
+    def _get_class(self, class_id, school_id):
+        if not class_id:
+            raise ValidationException('class_id is required.')
+        academic_class = self.storage.get_class_by_id(class_id, school_id)
+        if academic_class is None:
+            raise NotFoundException('Class not found.')
+        return academic_class
