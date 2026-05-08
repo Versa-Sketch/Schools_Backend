@@ -35,14 +35,14 @@ class CreateTeacherInteractor:
         school = profile.school
 
         name = data.get('name', '').strip()
-        mobile_number = data.get('mobile_number', '').strip()
+        phone_number = data.get('phone_number', '').strip()
         username = data.get('username', '').strip()
         password = data.get('password', '').strip()
         primary_subject_id = data.get('primary_subject_id')
         section_ids = data.get('assigned_section_ids', [])
 
-        if not all([name, mobile_number, username, password]):
-            raise ValidationException('name, mobile_number, username, and password are required.')
+        if not all([name, phone_number, username, password]):
+            raise ValidationException('name, phone_number, username, and password are required.')
         if self.storage.username_exists(username):
             raise ValidationException(constants.USERNAME_ALREADY_EXISTS)
 
@@ -59,7 +59,7 @@ class CreateTeacherInteractor:
                 raise ValidationException(constants.SECTION_NOT_FOUND)
 
         teacher = self.storage.create_teacher(
-            school=school, name=name, mobile_number=mobile_number,
+            school=school, name=name, phone_number=phone_number,
             username=username, password=password,
             primary_subject=primary_subject, sections=sections,
         )
@@ -85,8 +85,8 @@ class UpdateTeacherInteractor:
         updates = {}
         if 'name' in data:
             updates['name'] = data['name']
-        if 'mobile_number' in data:
-            updates['mobile_number'] = data['mobile_number']
+        if 'phone_number' in data:
+            updates['phone_number'] = data['phone_number']
         if 'primary_subject_id' in data:
             pid = data['primary_subject_id']
             if pid is None:

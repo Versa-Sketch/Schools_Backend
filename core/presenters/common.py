@@ -31,8 +31,6 @@ def format_profile(profile):
 
     if hasattr(profile, 'name'):
         data['name'] = profile.name
-    if hasattr(profile, 'mobile_number'):
-        data['mobile_number'] = profile.mobile_number
     if hasattr(profile, 'roll_number'):
         data['roll_number'] = profile.roll_number
     if hasattr(profile, 'admission_number'):

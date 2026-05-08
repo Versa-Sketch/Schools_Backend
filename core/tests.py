@@ -66,13 +66,11 @@ class RoleProfileTests(TestCase):
         principal = PrincipalProfile.objects.create(
             user=User.objects.create_user(username='principal', role=ROLE_PRINCIPAL),
             school=school,
-            mobile_number='9000000000',
         )
         teacher = TeacherProfile.objects.create(
             user=User.objects.create_user(username='teacher', role=ROLE_TEACHER),
             school=school,
             name='Teacher One',
-            mobile_number='9000000001',
             primary_subject=subject,
         )
         teacher.assigned_sections.add(section)
@@ -88,7 +86,6 @@ class RoleProfileTests(TestCase):
             user=User.objects.create_user(username='parent', role=ROLE_PARENT),
             school=school,
             name='Parent One',
-            mobile_number='9000000002',
         )
         parent.students.add(student)
 
@@ -105,7 +102,6 @@ class RoleProfileTests(TestCase):
         admin_profile = AdminProfile.objects.create(
             user=admin_user,
             school=school,
-            mobile_number='9000000009',
         )
 
         self.assertEqual(UserDB().get_user_profile(admin_user), admin_profile)
@@ -135,7 +131,6 @@ class AttendanceModelTests(TestCase):
             user=User.objects.create_user(username='teacher', role=ROLE_TEACHER),
             school=self.school,
             name='Teacher One',
-            mobile_number='9000000001',
             primary_subject=self.subject,
         )
         self.teacher.assigned_sections.add(self.section)
@@ -170,7 +165,6 @@ class WorkflowValidationTests(TestCase):
             user=User.objects.create_user(username='teacher', role=ROLE_TEACHER),
             school=self.school,
             name='Teacher One',
-            mobile_number='9000000001',
             primary_subject=self.subject,
         )
         self.teacher.assigned_sections.add(self.section)
@@ -186,7 +180,6 @@ class WorkflowValidationTests(TestCase):
             user=User.objects.create_user(username='parent', role=ROLE_PARENT),
             school=self.school,
             name='Parent One',
-            mobile_number='9000000002',
         )
         self.parent.students.add(self.student)
 
@@ -194,7 +187,6 @@ class WorkflowValidationTests(TestCase):
         principal = PrincipalProfile.objects.create(
             user=User.objects.create_user(username='principal', role=ROLE_PRINCIPAL),
             school=self.school,
-            mobile_number='9000000004',
         )
         batch = StudentBulkUploadBatch.objects.create(
             school=self.school,
@@ -238,7 +230,6 @@ class AuthAPITests(TestCase):
             user=self.user,
             school=self.school,
             name='Teacher One',
-            mobile_number='9000000001',
         )
 
     def test_login_with_phone_number_returns_tokens(self):

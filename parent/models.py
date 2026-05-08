@@ -15,7 +15,6 @@ class ParentProfile(models.Model):
         on_delete=models.CASCADE,
     )
     name = models.CharField(max_length=255)
-    mobile_number = models.CharField(max_length=20)
     students = models.ManyToManyField(
         'student.StudentProfile',
         blank=True,

@@ -14,7 +14,6 @@ class PrincipalProfile(models.Model):
         'core.School',
         on_delete=models.CASCADE,
     )
-    mobile_number = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -35,7 +34,6 @@ class AdminProfile(models.Model):
         'core.School',
         on_delete=models.CASCADE,
     )
-    mobile_number = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

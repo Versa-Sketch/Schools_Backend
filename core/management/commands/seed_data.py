@@ -221,7 +221,7 @@ class Command(BaseCommand):
             user.save()
         PrincipalProfile.objects.get_or_create(
             user=user,
-            defaults={'school': school, 'mobile_number': '9000000001'},
+            defaults={'school': school},
         )
         self.stdout.write('  Seeded 1 principal.')
         return user
@@ -250,7 +250,6 @@ class Command(BaseCommand):
                 defaults={
                     'school': school,
                     'name': name,
-                    'mobile_number': phone,
                     'primary_subject': subjects[subj_code],
                 },
             )
@@ -369,7 +368,7 @@ class Command(BaseCommand):
                 user.save()
             profile, _ = ParentProfile.objects.get_or_create(
                 user=user,
-                defaults={'school': school, 'name': name, 'mobile_number': phone},
+                defaults={'school': school, 'name': name},
             )
             if not profile.students.exists():
                 for key in student_keys:

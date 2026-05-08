@@ -7,7 +7,7 @@ class ParentProfilePresenter:
         return Response({
             'id': profile.id,
             'name': profile.name,
-            'mobile_number': profile.mobile_number,
+            'phone_number': profile.user.phone_number,
             'school': {'id': profile.school_id, 'name': profile.school.name},
             'students': [
                 {

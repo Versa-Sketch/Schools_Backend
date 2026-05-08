@@ -108,25 +108,6 @@ PARENT_QUERY_STATUS_CHOICES = [
     (PARENT_QUERY_STATUS_CLOSED, 'Closed'),
 ]
 
-
-class User(AbstractUser):
-    REQUIRED_FIELDS = ['role']
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    phone_number = models.CharField(max_length=20, blank=True, null=True)
-    profile_pic = models.URLField(max_length=500, blank=True, null=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['phone_number'],
-                condition=models.Q(phone_number__isnull=False) & ~models.Q(phone_number=''),
-                name='unique_user_phone_number_when_set',
-            ),
-        ]
-
-
 class TimeStampedModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -135,6 +116,24 @@ class TimeStampedModel(models.Model):
     class Meta:
         abstract = True
 
+class User(AbstractUser, TimeStampedModel):
+    REQUIRED_FIELDS = ['role']
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
+    profile_pic = models.URLField(max_length=500, blank=True, null=True)
+
+    class Meta(AbstractUser.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=['phone_number'],
+                condition=models.Q(phone_number__isnull=False) & ~models.Q(phone_number=''),
+                name='unique_phone_number_when_set',
+            )
+        ]
+    def __str__(self):
+        return f'{self.username} - {self.role}'
 
 class School(TimeStampedModel):
     name = models.CharField(max_length=255)

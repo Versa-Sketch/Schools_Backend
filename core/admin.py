@@ -27,10 +27,10 @@ from .models import (
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('School Role', {'fields': ('role',)}),
+        ('School Role', {'fields': ('role', 'phone_number', 'profile_pic')}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('School Role', {'fields': ('role',)}),
+        ('School Role', {'fields': ('role', 'phone_number')}),
     )
     list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'is_staff')
     list_filter = UserAdmin.list_filter + ('role',)

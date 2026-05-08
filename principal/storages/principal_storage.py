@@ -81,7 +81,7 @@ class PrincipalDB:
         if search:
             qs = qs.filter(
                 Q(name__icontains=search) |
-                Q(mobile_number__icontains=search) |
+                Q(user__phone_number__icontains=search) |
                 Q(user__username__icontains=search)
             )
         return qs.distinct()
@@ -109,12 +109,14 @@ class PrincipalDB:
     def username_exists(self, username):
         return User.objects.filter(username=username).exists()
 
-    def create_teacher(self, school, name, mobile_number, username, password, primary_subject=None, sections=None):
+    def create_teacher(self, school, name, phone_number, username, password, primary_subject=None, sections=None):
         with transaction.atomic():
             user = User.objects.create_user(username=username, password=password, role='TEACHER')
+            user.phone_number = phone_number
+            user.save(update_fields=['phone_number'])
             profile = TeacherProfile.objects.create(
                 user=user, school=school, name=name,
-                mobile_number=mobile_number, primary_subject=primary_subject,
+                primary_subject=primary_subject,
             )
             if sections:
                 profile.assigned_sections.set(sections)
@@ -123,9 +125,16 @@ class PrincipalDB:
         ).prefetch_related('assigned_sections__academic_class').get(id=profile.id)
 
     def update_teacher(self, teacher, updates, sections=None):
-        for key, value in updates.items():
+        user_fields = {'phone_number'}
+        user_updates = {k: v for k, v in updates.items() if k in user_fields}
+        profile_updates = {k: v for k, v in updates.items() if k not in user_fields}
+        for key, value in profile_updates.items():
             setattr(teacher, key, value)
         teacher.save()
+        if user_updates:
+            for key, value in user_updates.items():
+                setattr(teacher.user, key, value)
+            teacher.user.save(update_fields=list(user_updates.keys()))
         if sections is not None:
             teacher.assigned_sections.set(sections)
         return TeacherProfile.objects.select_related(
@@ -181,9 +190,9 @@ class PrincipalDB:
         section_name = row.get('section', '').strip()
         student_name = row.get('student_name', '').strip()
         parent_name = row.get('parent_name', '').strip()
-        parent_mobile = row.get('parent_mobile_number', '').strip()
+        parent_phone = row.get('parent_phone_number', '').strip()
 
-        if not all([class_name, section_name, student_name, parent_name, parent_mobile]):
+        if not all([class_name, section_name, student_name, parent_name, parent_phone]):
             raise ValueError('Missing required fields.')
 
         academic_class = AcademicClass.objects.get(school=school, name__iexact=class_name)
@@ -194,7 +203,7 @@ class PrincipalDB:
             student_username = f"{student_username}_{index}"
 
         student_user = User.objects.create_user(
-            username=student_username, password=f"pass@{parent_mobile}", role='STUDENT',
+            username=student_username, password=f"pass@{parent_phone}", role='STUDENT',
         )
         student_profile = StudentProfile.objects.create(
             user=student_user, school=school, name=student_name,
@@ -203,16 +212,17 @@ class PrincipalDB:
             admission_number=row.get('admission_number', '').strip(),
         )
 
-        parent_profile = ParentProfile.objects.filter(school=school, mobile_number=parent_mobile).first()
+        parent_profile = ParentProfile.objects.filter(school=school, user__phone_number=parent_phone).first()
         if parent_profile is None:
-            parent_username = row.get('parent_username', '').strip() or f"parent_{school.id}_{parent_mobile}"
+            parent_username = row.get('parent_username', '').strip() or f"parent_{school.id}_{parent_phone}"
             if User.objects.filter(username=parent_username).exists():
                 parent_username = f"{parent_username}_{index}"
             parent_user = User.objects.create_user(
-                username=parent_username, password=f"pass@{parent_mobile}", role='PARENT',
+                username=parent_username, password=f"pass@{parent_phone}", role='PARENT',
+                phone_number=parent_phone,
             )
             parent_profile = ParentProfile.objects.create(
-                user=parent_user, school=school, name=parent_name, mobile_number=parent_mobile,
+                user=parent_user, school=school, name=parent_name,
             )
         parent_profile.students.add(student_profile)
 

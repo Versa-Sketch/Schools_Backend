@@ -5,7 +5,11 @@ from .models import ParentProfile
 
 @admin.register(ParentProfile)
 class ParentProfileAdmin(admin.ModelAdmin):
-    list_display = ('name', 'school', 'mobile_number')
+    list_display = ('name', 'school', 'phone_number')
     list_filter = ('school',)
-    search_fields = ('name', 'mobile_number', 'user__username')
+    search_fields = ('name', 'user__phone_number', 'user__username')
     filter_horizontal = ('students',)
+
+    def phone_number(self, obj):
+        return obj.user.phone_number
+    phone_number.short_description = 'Phone Number'

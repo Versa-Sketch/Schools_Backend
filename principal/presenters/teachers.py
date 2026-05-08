@@ -10,7 +10,7 @@ def _format_teacher(teacher):
             'role': teacher.user.role,
         },
         'name': teacher.name,
-        'mobile_number': teacher.mobile_number,
+        'phone_number': teacher.user.phone_number,
         'primary_subject': (
             {'id': teacher.primary_subject_id, 'name': teacher.primary_subject.name}
             if teacher.primary_subject_id else None

@@ -15,7 +15,6 @@ class TeacherProfile(models.Model):
         on_delete=models.CASCADE,
     )
     name = models.CharField(max_length=255)
-    mobile_number = models.CharField(max_length=20)
     primary_subject = models.ForeignKey(
         'core.Subject',
         on_delete=models.SET_NULL,
