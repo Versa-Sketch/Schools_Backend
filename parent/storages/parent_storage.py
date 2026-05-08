@@ -20,7 +20,7 @@ class ParentDB:
         if profile is None:
             return None
         from parent.models import ParentProfile
-        return ParentProfile.objects.select_related('school').get(pk=profile.pk)
+        return ParentProfile.objects.select_related('school', 'user').get(pk=profile.pk)
 
     def get_linked_students(self, parent_profile):
         return parent_profile.students.select_related(
