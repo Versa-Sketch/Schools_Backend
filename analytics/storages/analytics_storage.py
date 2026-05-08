@@ -405,18 +405,26 @@ class AnalyticsDB:
         except Section.DoesNotExist:
             return None
 
-    def get_question_analytics_for_subject(self, exam_id, subject_name):
+    def get_exam_subject_by_id(self, subject_id, exam_id):
+        """Fetch an ExamSubject by UUID, scoped to the exam."""
+        try:
+            return ExamSubject.objects.get(id=subject_id, exam_id=exam_id)
+        except ExamSubject.DoesNotExist:
+            return None
+
+    def get_question_analytics_for_subject(self, exam_id, subject_id):
         return list(
             QuestionAnalytics.objects
-            .filter(exam_id=exam_id, subject__subject_name=subject_name)
+            .filter(exam_id=exam_id, subject_id=subject_id)
+            .select_related('subject')
             .order_by('q_no')
         )
 
-    def get_question_detail(self, exam_id, subject_name, q_no):
+    def get_question_detail(self, exam_id, subject_id, q_no):
         try:
             return QuestionAnalytics.objects.select_related('subject').get(
                 exam_id=exam_id,
-                subject__subject_name=subject_name,
+                subject_id=subject_id,
                 q_no=q_no,
             )
         except QuestionAnalytics.DoesNotExist:
@@ -499,7 +507,7 @@ class AnalyticsDB:
     # ------------------------------------------------------ Screen 7 queries
 
     def get_exam_result_for_student_subject(
-        self, exam_id, student_id, subject_name, school_id
+        self, exam_id, student_id, subject_id, school_id
     ):
         """Single ExamResult for one student × subject for Screen 7."""
         try:
@@ -507,13 +515,13 @@ class AnalyticsDB:
                 exam_id=exam_id,
                 student_id=student_id,
                 exam__school_id=school_id,
-                subject__subject_name=subject_name,
+                subject_id=subject_id,
             )
         except ExamResult.DoesNotExist:
             return None
 
     def get_risk_for_student_subject(
-        self, exam_id, student_id, subject_name, school_id
+        self, exam_id, student_id, subject_id, school_id
     ):
         """Single StudentRisk for one student × subject for Screen 7."""
         try:
@@ -521,13 +529,13 @@ class AnalyticsDB:
                 exam_id=exam_id,
                 student_id=student_id,
                 exam__school_id=school_id,
-                subject__subject_name=subject_name,
+                subject_id=subject_id,
             )
         except StudentRisk.DoesNotExist:
             return None
 
     def get_question_results_by_student_id(
-        self, exam_id, student_id, subject_name
+        self, exam_id, student_id, subject_id
     ):
         """QuestionResult rows for one student × subject for Screen 7."""
         return list(
@@ -535,7 +543,7 @@ class AnalyticsDB:
             .filter(
                 exam_id=exam_id,
                 student_id=student_id,
-                subject__subject_name=subject_name,
+                subject_id=subject_id,
             )
             .order_by('q_no')
         )

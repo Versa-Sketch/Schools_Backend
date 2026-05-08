@@ -29,33 +29,35 @@ class StudentInteractor:
 
     # ---------------------------------------------------------------- Screen 7
 
-    def get_student_subject(self, user, student_id, subject_name, exam_id):
+    def get_student_subject(self, user, student_id, subject_id, exam_id):
         school_id = self._get_school_id(user)
         student = self._get_student(student_id, school_id)
         self._check_student_access(user, student, school_id)
         exam, _ = self._get_done_exam_with_list(exam_id, school_id)
 
-        subject_name = subject_name.upper()
+        exam_subject = self.storage.get_exam_subject_by_id(subject_id, exam_id)
+        if exam_subject is None:
+            raise NotFoundException('Subject not found for this exam.')
 
         exam_result = self.storage.get_exam_result_for_student_subject(
-            exam_id, student_id, subject_name, school_id
+            exam_id, student_id, subject_id, school_id
         )
         if exam_result is None:
             raise NotFoundException(
-                f'No result found for subject {subject_name!r}.'
+                f'No result found for subject {exam_subject.subject_name!r}.'
             )
 
         risk = self.storage.get_risk_for_student_subject(
-            exam_id, student_id, subject_name, school_id
+            exam_id, student_id, subject_id, school_id
         )
         question_results = self.storage.get_question_results_by_student_id(
-            exam_id, student_id, subject_name
+            exam_id, student_id, subject_id
         )
 
         return self.presenter.student_subject_success(
             student=student,
             exam=exam,
-            subject_name=subject_name,
+            subject_name=exam_subject.subject_name,
             exam_result=exam_result,
             risk=risk,
             question_results=question_results,

@@ -15,14 +15,14 @@ urlpatterns = [
     # 7b — Section screens (Principal + Teacher/own section)
     path('section/<uuid:section_id>/',
          views.section_students_view, name='analytics-section-students'),
-    path('section/<uuid:section_id>/subject/<str:subject_name>/heatmap/',
+    path('section/<uuid:section_id>/subject/<uuid:subject_id>/heatmap/',
          views.question_heatmap_view, name='analytics-question-heatmap'),
-    path('section/<uuid:section_id>/subject/<str:subject_name>/question/<int:q_no>/',
+    path('section/<uuid:section_id>/subject/<uuid:subject_id>/question/<int:q_no>/',
          views.question_detail_view,  name='analytics-question-detail'),
 
     # 7c — Student screens (Principal, Teacher/own section, Student/own, Parent/own child)
     path('student/<uuid:student_id>/',
          views.student_summary_view, name='analytics-student-summary'),
-    path('student/<uuid:student_id>/subject/<str:subject_name>/',
+    path('student/<uuid:student_id>/subject/<uuid:subject_id>/',
          views.student_subject_view, name='analytics-student-subject'),
 ]

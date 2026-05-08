@@ -86,28 +86,28 @@ def section_students_view(request, section_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsPrincipal | IsAdmin | IsTeacher])
-def question_heatmap_view(request, section_id, subject_name):
+def question_heatmap_view(request, section_id, subject_id):
     return SectionInteractor(
         storage=AnalyticsDB(),
         presenter=SectionPresenter(),
     ).get_question_heatmap(
         user=request.user,
         section_id=section_id,
-        subject_name=subject_name,
+        subject_id=subject_id,
         exam_id=request.query_params.get('exam_id'),
     )
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsPrincipal | IsAdmin | IsTeacher])
-def question_detail_view(request, section_id, subject_name, q_no):
+def question_detail_view(request, section_id, subject_id, q_no):
     return SectionInteractor(
         storage=AnalyticsDB(),
         presenter=SectionPresenter(),
     ).get_question_detail(
         user=request.user,
         section_id=section_id,
-        subject_name=subject_name,
+        subject_id=subject_id,
         q_no=q_no,
         exam_id=request.query_params.get('exam_id'),
     )
@@ -136,14 +136,14 @@ def student_summary_view(request, student_id):
     IsAuthenticated,
     IsPrincipal | IsAdmin | IsTeacher | IsStudent | IsParent,
 ])
-def student_subject_view(request, student_id, subject_name):
+def student_subject_view(request, student_id, subject_id):
     return StudentInteractor(
         storage=AnalyticsDB(),
         presenter=StudentPresenter(),
     ).get_student_subject(
         user=request.user,
         student_id=student_id,
-        subject_name=subject_name,
+        subject_id=subject_id,
         exam_id=request.query_params.get('exam_id'),
     )
 

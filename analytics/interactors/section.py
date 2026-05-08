@@ -22,25 +22,31 @@ class SectionInteractor:
         )
         return self.presenter.section_students_success(section, exam, exam_results, risk_map)
 
-    def get_question_heatmap(self, user, section_id, subject_name, exam_id):
+    def get_question_heatmap(self, user, section_id, subject_id, exam_id):
         school_id = self._get_school_id(user)
         section   = self._get_section(section_id, school_id)
         self._check_section_access(user, section)
         exam = self._get_done_exam(exam_id, school_id)
+        exam_subject = self._get_exam_subject(subject_id, exam_id)
 
-        questions = self.storage.get_question_analytics_for_subject(exam_id, subject_name)
-        return self.presenter.heatmap_success(section, subject_name, exam, questions)
+        questions = self.storage.get_question_analytics_for_subject(exam_id, subject_id)
+        return self.presenter.heatmap_success(
+            section, exam_subject.subject_name, exam, questions
+        )
 
-    def get_question_detail(self, user, section_id, subject_name, q_no, exam_id):
+    def get_question_detail(self, user, section_id, subject_id, q_no, exam_id):
         school_id = self._get_school_id(user)
         section   = self._get_section(section_id, school_id)
         self._check_section_access(user, section)
         exam = self._get_done_exam(exam_id, school_id)
+        exam_subject = self._get_exam_subject(subject_id, exam_id)
 
-        qa = self.storage.get_question_detail(exam_id, subject_name, q_no)
+        qa = self.storage.get_question_detail(exam_id, subject_id, q_no)
         if qa is None:
-            raise NotFoundException(f'Question {q_no} not found for {subject_name}.')
-        return self.presenter.question_detail_success(section, subject_name, q_no, exam, qa)
+            raise NotFoundException(f'Question {q_no} not found.')
+        return self.presenter.question_detail_success(
+            section, exam_subject.subject_name, q_no, exam, qa
+        )
 
     # ---------------------------------------------------------------- helpers
 
@@ -89,3 +95,11 @@ class SectionInteractor:
                 f'Analytics not ready (status: {exam.analytics_status}).'
             )
         return exam
+
+    def _get_exam_subject(self, subject_id, exam_id):
+        if not subject_id:
+            raise ValidationException('subject_id is required.')
+        exam_subject = self.storage.get_exam_subject_by_id(subject_id, exam_id)
+        if exam_subject is None:
+            raise NotFoundException('Subject not found for this exam.')
+        return exam_subject
