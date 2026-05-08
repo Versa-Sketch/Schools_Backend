@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
 from core.models import School, TimeStampedModel
@@ -18,7 +19,7 @@ class Notification(TimeStampedModel):
     notif_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPE_CHOICES)
     title = models.CharField(max_length=255)
     body = models.TextField()
-    data = models.JSONField(default=dict)
+    data = models.JSONField(default=dict, encoder=DjangoJSONEncoder)
     is_read = models.BooleanField(default=False)
     read_at = models.DateTimeField(null=True, blank=True)
 
