@@ -40,7 +40,7 @@ class CoreDB:
     def get_calendar_events_for_role(self, school_id, role, event_type=None, start_date=None, end_date=None):
         qs = AcademicCalendarEvent.objects.filter(school_id=school_id)
         if role not in ('ADMIN', 'PRINCIPAL'):
-            qs = qs.filter(visible_to__contains=[role])
+            qs = qs.filter(visible_to__icontains=role)
         if event_type:
             qs = qs.filter(event_type=event_type)
         if start_date:

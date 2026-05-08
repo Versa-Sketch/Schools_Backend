@@ -95,7 +95,7 @@ class ParentDB:
 
     def get_calendar_events_for_student(self, student_profile, event_type=None, start_date=None, end_date=None):
         qs = AcademicCalendarEvent.objects.filter(
-            school=student_profile.school, visible_to__contains=['PARENT'],
+            school=student_profile.school, visible_to__icontains='PARENT',
         )
         if event_type:
             qs = qs.filter(event_type=event_type)
