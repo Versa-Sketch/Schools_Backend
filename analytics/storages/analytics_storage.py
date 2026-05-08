@@ -1,3 +1,5 @@
+from django.db.models import Avg, Count, Q
+
 from core.models import AcademicClass, Section, Subject
 from analytics.models import (
     AnalyticsExam,
@@ -284,6 +286,118 @@ class AnalyticsDB:
             .filter(exam_id=exam_id)
             .select_related('section', 'academic_class', 'subject', 'top_scorer')
         )
+
+    def get_subject_overall_stats(self, exam_id, school_id):
+        """
+        School-level stats per subject for Screen 1 subject_summary cards.
+        Queries ExamResult directly so averages are exact (not biased
+        average-of-section-averages).
+        Returns a list of dicts ordered by subject_name.
+        """
+        subjects = list(
+            ExamSubject.objects
+            .filter(exam_id=exam_id, exam__school_id=school_id)
+            .order_by('subject_name')
+        )
+
+        stats = []
+        for es in subjects:
+            agg = (
+                ExamResult.objects
+                .filter(exam_id=exam_id, subject=es)
+                .aggregate(avg=Avg('total_marks'))
+            )
+            school_avg = round(agg['avg'] or 0.0, 2)
+
+            top = (
+                ExamResult.objects
+                .filter(exam_id=exam_id, subject=es)
+                .select_related('student')
+                .order_by('-total_marks')
+                .first()
+            )
+
+            stats.append({
+                'subject_name':    es.subject_name,
+                'total_questions': es.total_questions,
+                'school_avg':      school_avg,
+                'top_scorer': {
+                    'name':            top.student.name,
+                    'student_ref_id':  top.student.student_ref_id,
+                    'marks':           top.total_marks,
+                    'class_name':      top.student.class_name,
+                    'section_name':    top.student.section_name,
+                } if top else None,
+            })
+        return stats
+
+    def get_section_analytics_for_class(self, exam_id, class_name, school_id):
+        """
+        Section-level analytics filtered by class for Screen 2.
+        Attaches _top_marks to each row (the top scorer's marks in
+        that subject) via a single batch ExamResult query.
+        """
+        sa_list = list(
+            SectionAnalytics.objects
+            .filter(
+                exam_id=exam_id,
+                exam__school_id=school_id,
+                academic_class__name__iexact=class_name,
+            )
+            .select_related('section', 'academic_class', 'subject', 'top_scorer')
+            .order_by('section__name', 'subject__subject_name')
+        )
+
+        if not sa_list:
+            return sa_list
+
+        # Batch fetch top-scorer marks to avoid N+1 queries
+        scorer_pairs = [
+            (str(sa.top_scorer_id), str(sa.subject_id))
+            for sa in sa_list if sa.top_scorer_id
+        ]
+        marks_lookup = {}
+        if scorer_pairs:
+            q = Q()
+            for student_id, subject_id in scorer_pairs:
+                q |= Q(student_id=student_id, subject_id=subject_id)
+            for row in ExamResult.objects.filter(exam_id=exam_id).filter(q).values(
+                'student_id', 'subject_id', 'total_marks'
+            ):
+                marks_lookup[(str(row['student_id']), str(row['subject_id']))] = row['total_marks']
+
+        for sa in sa_list:
+            if sa.top_scorer_id:
+                sa._top_marks = marks_lookup.get((str(sa.top_scorer_id), str(sa.subject_id)))
+            else:
+                sa._top_marks = None
+
+        return sa_list
+
+    def get_student_counts_for_exam(self, exam_id, school_id):
+        """
+        Returns {section_id_str: student_count} for all sections in the exam.
+        Used by Screen 2 to show how many students are in each section.
+        """
+        rows = (
+            ExamResult.objects
+            .filter(
+                exam_id=exam_id,
+                exam__school_id=school_id,
+                student__section__isnull=False,
+            )
+            .values('student__section_id')
+            .annotate(count=Count('student_id', distinct=True))
+        )
+        return {str(r['student__section_id']): r['count'] for r in rows}
+
+    def get_section_by_id(self, section_id, school_id):
+        try:
+            return Section.objects.select_related('academic_class').get(
+                id=section_id, school_id=school_id,
+            )
+        except Section.DoesNotExist:
+            return None
 
     def get_question_analytics_for_subject(self, exam_id, subject_name):
         return list(
