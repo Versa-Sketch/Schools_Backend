@@ -14,8 +14,6 @@ from .interactors import (
     GetBulkUploadStatusInteractor,
     CreateAnnouncementInteractor,
     CreateCalendarEventInteractor,
-    ExamNotImplementedInteractor,
-    AnalyticsInteractor,
     ListSectionsInteractor,
     UpdateSectionInteractor,
 )
@@ -25,8 +23,6 @@ from .presenters.bulk_upload import BulkUploadPresenter
 from .presenters.announcements import AnnouncementPresenter
 from .presenters.calendar import CalendarPresenter
 from .presenters.sections import SectionsPresenter
-from .presenters.exams import ExamPresenter
-from .presenters.analytics import AnalyticsPresenter
 
 
 @api_view(['GET', 'PATCH'])
@@ -121,21 +117,3 @@ def section_detail_view(request, section_id):
     ).update_section(user=request.user, section_id=section_id, data=request.data)
 
 
-@api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
-def exam_view(request):
-    return ExamNotImplementedInteractor(presenter=ExamPresenter()).respond(user=request.user)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
-def results_view(request):
-    return ExamNotImplementedInteractor(presenter=ExamPresenter()).respond(user=request.user)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
-def analytics_view(request):
-    return AnalyticsInteractor(
-        storage=PrincipalDB(), presenter=AnalyticsPresenter(),
-    ).get_analytics(user=request.user)

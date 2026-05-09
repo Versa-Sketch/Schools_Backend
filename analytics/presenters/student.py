@@ -56,7 +56,6 @@ class StudentPresenter:
             'success':      True,
             'student':      self._fmt_student(student),
             'exam':         self._fmt_exam(exam),
-            'exams':        [self._fmt_exam_summary(e) for e in exams],
             'subjects':     subjects,
             'overall_risk': overall_risk,
         }, status=200)

@@ -44,8 +44,12 @@ class SectionInteractor:
         qa = self.storage.get_question_detail(exam_id, subject_id, q_no)
         if qa is None:
             raise NotFoundException(f'Question {q_no} not found.')
+
+        student_breakdown = self.storage.get_question_results_for_section_question(
+            exam_id, section_id, subject_id, q_no
+        )
         return self.presenter.question_detail_success(
-            section, exam_subject.subject_name, q_no, exam, qa
+            section, exam_subject.subject_name, q_no, exam, qa, student_breakdown
         )
 
     # ---------------------------------------------------------------- helpers

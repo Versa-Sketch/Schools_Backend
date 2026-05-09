@@ -1,6 +1,7 @@
 from django.db.models import Avg, Count, Q
 
 from core.models import AcademicClass, Section, Subject
+from student.models import StudentProfile
 from analytics.models import (
     AnalyticsExam,
     AnalyticsStudent,
@@ -58,33 +59,53 @@ class AnalyticsDB:
         )
 
     def get_or_create_analytics_student(
-        self, school, student_ref_id, name, class_name, section_name
+        self, school, student_ref_id, name, class_name='', section_name=''
     ):
-        section = (
-            Section.objects
-            .filter(
-                school=school,
-                name__iexact=section_name,
-                academic_class__name__iexact=class_name,
-            )
-            .select_related('academic_class')
-            .first()
-        )
-        academic_class = (
-            section.academic_class
-            if section
-            else AcademicClass.objects.filter(school=school, name__iexact=class_name).first()
-        )
+        section      = None
+        academic_class = None
+        linked_user  = None
+
+        # Primary: match via StudentProfile.admission_number (most reliable)
+        profile = StudentProfile.objects.filter(
+            school=school, admission_number=student_ref_id
+        ).select_related('section__academic_class', 'user').first()
+
+        if profile:
+            section        = profile.section
+            academic_class = profile.academic_class
+            linked_user    = profile.user
+            class_name     = academic_class.name
+            section_name   = section.name
+        else:
+            # Fallback: text-based matching from CSV class/section columns
+            if class_name and section_name:
+                section = (
+                    Section.objects
+                    .filter(
+                        school=school,
+                        name__iexact=section_name,
+                        academic_class__name__iexact=class_name,
+                    )
+                    .select_related('academic_class')
+                    .first()
+                )
+            if section:
+                academic_class = section.academic_class
+            elif class_name:
+                academic_class = AcademicClass.objects.filter(
+                    school=school, name__iexact=class_name
+                ).first()
 
         student, _ = AnalyticsStudent.objects.update_or_create(
             student_ref_id=student_ref_id,
             school=school,
             defaults={
-                'name': name,
-                'class_name': class_name,
+                'name':         name,
+                'class_name':   class_name,
                 'section_name': section_name,
-                'section': section,
+                'section':      section,
                 'academic_class': academic_class,
+                'linked_user':  linked_user,
             },
         )
         return student
@@ -396,6 +417,34 @@ class AnalyticsDB:
             .annotate(count=Count('student_id', distinct=True))
         )
         return {str(r['student__section_id']): r['count'] for r in rows}
+
+    def get_question_results_for_section_question(
+        self, exam_id, section_id, subject_id, q_no
+    ):
+        """
+        Returns all QuestionResult rows for one specific question in a section,
+        grouped into correct / wrong / unattempted lists.
+        Each entry includes the student's name, id, and student_ref_id.
+        """
+        rows = list(
+            QuestionResult.objects
+            .filter(
+                exam_id=exam_id,
+                subject_id=subject_id,
+                q_no=q_no,
+                student__section_id=section_id,
+            )
+            .select_related('student')
+            .order_by('student__name')
+        )
+        result = {'C': [], 'W': [], 'U': []}
+        for qr in rows:
+            result[qr.status].append({
+                'student_id':     str(qr.student_id),
+                'student_ref_id': qr.student.student_ref_id,
+                'name':           qr.student.name,
+            })
+        return result
 
     def get_section_by_id(self, section_id, school_id):
         try:

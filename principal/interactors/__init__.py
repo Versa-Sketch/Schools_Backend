@@ -4,5 +4,3 @@ from .bulk_upload import BulkUploadStudentsInteractor, GetBulkUploadStatusIntera
 from .announcements import CreateAnnouncementInteractor
 from .calendar import CreateCalendarEventInteractor
 from .sections import ListSectionsInteractor, UpdateSectionInteractor
-from .exams import ExamNotImplementedInteractor
-from .analytics import AnalyticsInteractor

@@ -12,7 +12,4 @@ urlpatterns = [
     path('calendar-events/', views.calendar_event_create_view, name='principal-calendar-event-create'),
     path('sections/', views.section_list_view, name='principal-section-list'),
     path('sections/<uuid:section_id>/', views.section_detail_view, name='principal-section-detail'),
-    path('exams/', views.exam_view, name='principal-exam-list'),
-    path('results/', views.results_view, name='principal-results'),
-    path('analytics/', views.analytics_view, name='principal-analytics'),
 ]

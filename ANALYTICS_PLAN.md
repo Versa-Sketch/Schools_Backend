@@ -210,6 +210,22 @@ Screen 4 heatmap question:
  "difficulty_tag": "EASY", "difficulty_index": 85.7, "has_key_error": false}
 ```
 
+Screen 5 question detail:
+```json
+{
+  "question": {
+    "q_no": 1, "correct_count": 18, "wrong_count": 3, "skip_count": 0,
+    "difficulty_index": 85.7, "difficulty_tag": "EASY",
+    "discrimination_index": 0.45, "has_key_error": false
+  },
+  "students": {
+    "correct":     [{"student_id": "uuid", "student_ref_id": "2251863", "name": "MAHIMA REDDY.G"}],
+    "wrong":       [{"student_id": "uuid", "student_ref_id": "2218277", "name": "THANMAI.B"}],
+    "unattempted": [{"student_id": "uuid", "student_ref_id": "2271537", "name": "NAVYA GANGOTHRI.D"}]
+  }
+}
+```
+
 ---
 
 ## Phase 6 — Seed Data

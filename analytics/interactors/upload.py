@@ -6,6 +6,8 @@ from core.exceptions import NotFoundException
 from analytics.exceptions import AnalyticsValidationError
 from analytics.models import ExamResult, QuestionResult
 from analytics.services.csv_parser import parse_file
+from analytics.services.excel_parser import parse_excel_file
+from analytics.services.pdf_parser import parse_pdf_file
 from principal.exceptions import PrincipalPermissionException
 
 
@@ -14,7 +16,7 @@ class UploadExamCSVInteractor:
         self.storage = storage
         self.presenter = presenter
 
-    def upload(self, user, csv_file):
+    def upload(self, user, csv_file=None, excel_file=None, pdf_file=None):
         if user.role not in ('ADMIN', 'PRINCIPAL'):
             raise PrincipalPermissionException()
 
@@ -23,12 +25,19 @@ class UploadExamCSVInteractor:
             raise NotFoundException('Principal profile not found.')
         school = profile.school
 
-        if csv_file is None:
-            raise AnalyticsValidationError('csv_file is required.')
-
-        # Raises CSVStructureError or AnalyticsValidationError on bad input.
-        # Both are caught by the global exception handler and returned as 400s.
-        parse_result = parse_file(csv_file)
+        # Select parser based on which file field was provided.
+        # Excel/PDF: section and class are resolved via StudentProfile.admission_number.
+        # CSV: class and section come from columns in each row.
+        if pdf_file is not None:
+            parse_result = parse_pdf_file(pdf_file)
+        elif excel_file is not None:
+            parse_result = parse_excel_file(excel_file)
+        elif csv_file is not None:
+            parse_result = parse_file(csv_file)
+        else:
+            raise AnalyticsValidationError(
+                'One of pdf_file, excel_file, or csv_file is required.'
+            )
 
         if parse_result.success_count == 0:
             raise AnalyticsValidationError(

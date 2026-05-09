@@ -9,6 +9,17 @@ _STATUS_MESSAGES = {
 }
 
 
+def _consistency_label(avg_marks: float, std_dev: float) -> str:
+    if avg_marks == 0:
+        return 'Consistent'
+    cv = std_dev / avg_marks
+    if cv < 0.25:
+        return 'Consistent'
+    if cv < 0.45:
+        return 'Mixed'
+    return 'High variation'
+
+
 class DashboardPresenter:
 
     # ------------------------------------------------------------ Screen 1
@@ -89,8 +100,11 @@ class DashboardPresenter:
           {"labels": ["Class 11", ...], "datasets": [{"subject": "MATHS", "data": [51.9, ...]}, ...]}
         """
         by_class_subject = defaultdict(lambda: defaultdict(list))
+        class_id_map     = {}   # class_name → class_id string
         for sa in section_analytics:
-            by_class_subject[sa.academic_class.name][sa.subject.subject_name].append(sa.avg_marks)
+            name = sa.academic_class.name
+            by_class_subject[name][sa.subject.subject_name].append(sa.avg_marks)
+            class_id_map[name] = str(sa.academic_class_id)
 
         classes  = sorted(by_class_subject.keys())
         subjects = sorted({sa.subject.subject_name for sa in section_analytics})
@@ -104,7 +118,12 @@ class DashboardPresenter:
                 data.append(avg)
             datasets.append({'subject': subject, 'data': data})
 
-        return {'labels': classes, 'datasets': datasets}
+        # labels is a list of {class_id, class_name} so the frontend can navigate
+        labels = [
+            {'class_id': class_id_map[cls], 'class_name': cls}
+            for cls in classes
+        ]
+        return {'labels': labels, 'datasets': datasets}
 
     # --------------------------------------------------------- section breakdown
 
@@ -143,11 +162,15 @@ class DashboardPresenter:
                 'student_ref_id': sa.top_scorer.student_ref_id,
                 'marks':          getattr(sa, '_top_marks', None),
             }
+        max_marks      = sa.subject.max_marks or 1
+        avg_percentage = round((sa.avg_marks / max_marks) * 100, 1)
         return {
-            'subject_name':   sa.subject.subject_name,
-            'avg_marks':      sa.avg_marks,
-            'median_marks':   sa.median_marks,
-            'std_dev':        sa.std_dev,
-            'at_risk_count':  sa.at_risk_count,
-            'top_scorer':     top_scorer,
+            'subject_name':      sa.subject.subject_name,
+            'avg_marks':         sa.avg_marks,
+            'avg_percentage':    avg_percentage,
+            'median_marks':      sa.median_marks,
+            'std_dev':           sa.std_dev,
+            'consistency_label': _consistency_label(sa.avg_marks, sa.std_dev),
+            'at_risk_count':     sa.at_risk_count,
+            'top_scorer':        top_scorer,
         }

@@ -96,7 +96,7 @@ class SectionPresenter:
 
     # ------------------------------------------------------------ Screen 5
 
-    def question_detail_success(self, section, subject_name, q_no, exam, qa):
+    def question_detail_success(self, section, subject_name, q_no, exam, qa, student_breakdown):
         return Response({
             'success':      True,
             'class_name':   section.academic_class.name,
@@ -114,6 +114,11 @@ class SectionPresenter:
                 'difficulty_tag':       qa.difficulty_tag,
                 'discrimination_index': qa.discrimination_index,
                 'has_key_error':        qa.has_key_error,
+            },
+            'students': {
+                'correct':     student_breakdown.get('C', []),
+                'wrong':       student_breakdown.get('W', []),
+                'unattempted': student_breakdown.get('U', []),
             },
         }, status=200)
 
