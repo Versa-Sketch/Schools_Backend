@@ -1,5 +1,6 @@
 from core.exceptions import NotFoundException, PermissionDeniedException, ValidationException
 from django.utils.dateparse import parse_datetime
+from django.utils.timezone import is_naive, make_aware
 from teacher import constants
 from .base import _ensure_teacher
 
@@ -26,6 +27,8 @@ class CreateHomeworkInteractor:
         parsed_deadline = parse_datetime(deadline)
         if parsed_deadline is None:
             raise ValidationException('Invalid deadline format.')
+        if is_naive(parsed_deadline):
+            parsed_deadline = make_aware(parsed_deadline)
         deadline = parsed_deadline
         if not self.storage.is_section_accessible(teacher, section_id):
             raise PermissionDeniedException(constants.SECTION_NOT_ASSIGNED)
