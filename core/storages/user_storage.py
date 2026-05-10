@@ -12,12 +12,36 @@ class UserDB:
             return None
 
     def get_user_profile(self, user):
+        if user.role == 'TEACHER':
+            from teacher.models import TeacherProfile
+            try:
+                return TeacherProfile.objects.select_related(
+                    'primary_subject'
+                ).prefetch_related(
+                    'assigned_sections__academic_class'
+                ).get(user=user)
+            except TeacherProfile.DoesNotExist:
+                return None
+        elif user.role == 'STUDENT':
+            from student.models import StudentProfile
+            try:
+                return StudentProfile.objects.select_related(
+                    'academic_class', 'section'
+                ).get(user=user)
+            except StudentProfile.DoesNotExist:
+                return None
+        elif user.role == 'PARENT':
+            from parent.models import ParentProfile
+            try:
+                return ParentProfile.objects.prefetch_related(
+                    'students__academic_class', 'students__section'
+                ).get(user=user)
+            except ParentProfile.DoesNotExist:
+                return None
+
         profile_attribute_by_role = {
             'ADMIN': 'adminprofile',
             'PRINCIPAL': 'principalprofile',
-            'TEACHER': 'teacherprofile',
-            'STUDENT': 'studentprofile',
-            'PARENT': 'parentprofile',
         }
         profile_attribute = profile_attribute_by_role.get(user.role)
         if not profile_attribute:

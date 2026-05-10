@@ -35,9 +35,43 @@ def format_profile(profile):
         data['roll_number'] = profile.roll_number
     if hasattr(profile, 'admission_number'):
         data['admission_number'] = profile.admission_number
-    if hasattr(profile, 'academic_class_id'):
-        data['academic_class_id'] = profile.academic_class_id
-    if hasattr(profile, 'section_id'):
-        data['section_id'] = profile.section_id
+
+    # Student specific
+    if hasattr(profile, 'academic_class') and profile.academic_class:
+        data['academic_class'] = {
+            'id': str(profile.academic_class.id),
+            'name': profile.academic_class.name
+        }
+    if hasattr(profile, 'section') and profile.section:
+        data['section'] = {
+            'id': str(profile.section.id),
+            'name': profile.section.name
+        }
+
+    # Teacher specific
+    if hasattr(profile, 'primary_subject') and profile.primary_subject:
+        data['primary_subject'] = {
+            'id': str(profile.primary_subject.id),
+            'name': profile.primary_subject.name
+        }
+    if hasattr(profile, 'assigned_sections'):
+        data['assigned_sections'] = [
+            {
+                'id': str(section.id),
+                'class_name': section.academic_class.name,
+                'section_name': section.name
+            } for section in profile.assigned_sections.all()
+        ]
+
+    # Parent specific
+    if hasattr(profile, 'students'):
+        data['students'] = [
+            {
+                'id': str(student.id),
+                'name': student.name,
+                'academic_class_name': student.academic_class.name if student.academic_class else None,
+                'section_name': student.section.name if student.section else None,
+            } for student in profile.students.all()
+        ]
 
     return data
