@@ -1,6 +1,5 @@
 from core import constants
 from core.exceptions import (
-    AuthenticationFailedException,
     PermissionDeniedException,
     ValidationException,
 )
@@ -20,7 +19,7 @@ class LoginInteractor:
         
         user = self.storage.get_user_by_phone_number(phone_number=phone_number)
         if user is None or not user.check_password(password):
-            raise AuthenticationFailedException(constants.INVALID_CREDENTIALS)
+            raise ValidationException(constants.INVALID_CREDENTIALS)
         if not user.is_active:
             raise PermissionDeniedException(constants.INACTIVE_USER)
 

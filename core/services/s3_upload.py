@@ -93,8 +93,7 @@ def upload_to_s3(
             settings.AWS_STORAGE_BUCKET_NAME,
             key,
             ExtraArgs={
-                'ContentType': content_type,
-                'ACL': 'public-read',
+                'ContentType': content_type
             },
         )
     except (BotoCoreError, ClientError) as exc:
