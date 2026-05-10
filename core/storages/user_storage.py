@@ -16,7 +16,7 @@ class UserDB:
             from teacher.models import TeacherProfile
             try:
                 return TeacherProfile.objects.select_related(
-                    'primary_subject'
+                    'school', 'primary_subject'
                 ).prefetch_related(
                     'assigned_sections__academic_class'
                 ).get(user=user)
@@ -26,14 +26,14 @@ class UserDB:
             from student.models import StudentProfile
             try:
                 return StudentProfile.objects.select_related(
-                    'academic_class', 'section'
+                    'school', 'academic_class', 'section'
                 ).get(user=user)
             except StudentProfile.DoesNotExist:
                 return None
         elif user.role == 'PARENT':
             from parent.models import ParentProfile
             try:
-                return ParentProfile.objects.prefetch_related(
+                return ParentProfile.objects.select_related('school').prefetch_related(
                     'students__academic_class', 'students__section'
                 ).get(user=user)
             except ParentProfile.DoesNotExist:
@@ -46,6 +46,22 @@ class UserDB:
         profile_attribute = profile_attribute_by_role.get(user.role)
         if not profile_attribute:
             return None
+        
+        # Access profile to potentially query it. We can't select_related easily on reverse O2O here using getattr, 
+        # but since we want the school name, let's explicitly query if ADMIN or PRINCIPAL
+        if user.role == 'ADMIN':
+            from principal.models import AdminProfile
+            try:
+                return AdminProfile.objects.select_related('school').get(user=user)
+            except AdminProfile.DoesNotExist:
+                return None
+        elif user.role == 'PRINCIPAL':
+            from principal.models import PrincipalProfile
+            try:
+                return PrincipalProfile.objects.select_related('school').get(user=user)
+            except PrincipalProfile.DoesNotExist:
+                return None
+
         return getattr(user, profile_attribute, None)
 
     def update_user_profile_pic(self, user, url):
