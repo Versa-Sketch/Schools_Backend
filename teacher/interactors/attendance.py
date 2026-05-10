@@ -62,11 +62,12 @@ class MarkAttendanceInteractor:
             if r.get('status') not in {'PRESENT', 'ABSENT'}:
                 raise ValidationException(constants.INVALID_ATTENDANCE_STATUS)
 
-        section_student_ids = set(
+        section_student_ids = {
+            str(sid) for sid in
             self.storage.get_students_for_section(session.section_id).values_list('id', flat=True)
-        )
+        }
         for r in records_data:
-            if r.get('student_id') not in section_student_ids:
+            if str(r.get('student_id', '')) not in section_student_ids:
                 raise ValidationException(constants.STUDENT_NOT_IN_SECTION)
 
         saved = self.storage.bulk_set_attendance(session, records_data)
