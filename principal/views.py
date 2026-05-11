@@ -1,3 +1,6 @@
+from django.utils import timezone
+from django.utils.dateparse import parse_date
+
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
@@ -16,6 +19,8 @@ from .interactors import (
     CreateCalendarEventInteractor,
     ListSectionsInteractor,
     UpdateSectionInteractor,
+    DailyAttendanceSummaryInteractor,
+    ClassAttendanceDetailInteractor,
 )
 from .presenters.configuration import ConfigurationPresenter
 from .presenters.teachers import TeachersPresenter
@@ -23,6 +28,7 @@ from .presenters.bulk_upload import BulkUploadPresenter
 from .presenters.announcements import AnnouncementPresenter
 from .presenters.calendar import CalendarPresenter
 from .presenters.sections import SectionsPresenter
+from .presenters.attendance import AttendanceSummaryPresenter
 
 
 @api_view(['GET', 'PATCH'])
@@ -115,5 +121,29 @@ def section_detail_view(request, section_id):
     return UpdateSectionInteractor(
         storage=PrincipalDB(), presenter=SectionsPresenter(),
     ).update_section(user=request.user, section_id=section_id, data=request.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def daily_attendance_summary_view(request):
+    date_str = request.query_params.get('date')
+    date = parse_date(date_str) if date_str else timezone.now().date()
+    if date is None:
+        date = timezone.now().date()
+    return DailyAttendanceSummaryInteractor(
+        storage=PrincipalDB(), presenter=AttendanceSummaryPresenter(),
+    ).get_summary(user=request.user, date=date)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def class_attendance_detail_view(request, class_id):
+    date_str = request.query_params.get('date')
+    date = parse_date(date_str) if date_str else timezone.now().date()
+    if date is None:
+        date = timezone.now().date()
+    return ClassAttendanceDetailInteractor(
+        storage=PrincipalDB(), presenter=AttendanceSummaryPresenter(),
+    ).get_detail(user=request.user, class_id=class_id, date=date)
 
 

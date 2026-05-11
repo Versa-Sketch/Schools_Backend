@@ -10,12 +10,15 @@ from core.models import (
     Announcement,
     AnnouncementAttachment,
     AnnouncementTarget,
+    AttendanceSession,
     SchoolConfiguration,
     Section,
+    StudentAttendance,
     Subject,
     StudentBulkUploadBatch,
     StudentBulkUploadRow,
     User,
+    ATTENDANCE_STATUS_PRESENT,
     UPLOAD_BATCH_STATUS_PROCESSING,
     UPLOAD_BATCH_STATUS_COMPLETED,
     UPLOAD_ROW_STATUS_SUCCESS,
@@ -269,3 +272,97 @@ class PrincipalDB:
             start_date=start_date, end_date=end_date,
             description=description or '', visible_to=visible_to,
         )
+
+    # --- Attendance ---
+
+    def get_academic_class_by_id(self, school_id, class_id):
+        from core.exceptions import NotFoundException
+        from principal.constants import CLASS_NOT_FOUND
+        try:
+            return AcademicClass.objects.get(id=class_id, school_id=school_id)
+        except AcademicClass.DoesNotExist:
+            raise NotFoundException(CLASS_NOT_FOUND)
+
+    def get_daily_class_attendance_summary(self, school_id, date):
+        students = list(
+            StudentProfile.objects.filter(school_id=school_id, is_active=True)
+            .select_related('academic_class')
+            .order_by('academic_class__display_order', 'academic_class__name')
+        )
+
+        present_ids = set(
+            StudentAttendance.objects.filter(
+                session__school_id=school_id,
+                session__date=date,
+                session__confirmed_at__isnull=False,
+                status=ATTENDANCE_STATUS_PRESENT,
+            ).values_list('student_id', flat=True)
+        )
+
+        class_map = {}
+        for student in students:
+            cls = student.academic_class
+            if cls.id not in class_map:
+                class_map[cls.id] = {
+                    'class_id': cls.id,
+                    'class_name': cls.name,
+                    'display_order': cls.display_order,
+                    'total_students': 0,
+                    'present_count': 0,
+                }
+            class_map[cls.id]['total_students'] += 1
+            if student.id in present_ids:
+                class_map[cls.id]['present_count'] += 1
+
+        return sorted(class_map.values(), key=lambda x: (x['display_order'], x['class_name']))
+
+    def get_class_attendance_detail(self, school_id, class_id, date):
+        sections = list(
+            Section.objects.filter(school_id=school_id, academic_class_id=class_id)
+            .order_by('name')
+        )
+
+        students = list(
+            StudentProfile.objects.filter(
+                school_id=school_id, academic_class_id=class_id, is_active=True
+            )
+            .select_related('section')
+            .order_by('section__name', 'name')
+        )
+
+        records = StudentAttendance.objects.filter(
+            session__school_id=school_id,
+            session__section__academic_class_id=class_id,
+            session__date=date,
+            session__confirmed_at__isnull=False,
+        ).values('student_id', 'status')
+
+        student_status = {}
+        for rec in records:
+            sid = rec['student_id']
+            if sid not in student_status or student_status[sid] != ATTENDANCE_STATUS_PRESENT:
+                student_status[sid] = rec['status']
+
+        section_map = {
+            s.id: {
+                'section_id': s.id,
+                'section_name': s.name,
+                'total_students': 0,
+                'present_students': [],
+                'absent_students': [],
+            }
+            for s in sections
+        }
+
+        for student in students:
+            sec_id = student.section_id
+            if sec_id not in section_map:
+                continue
+            section_map[sec_id]['total_students'] += 1
+            status = student_status.get(student.id)
+            if status == ATTENDANCE_STATUS_PRESENT:
+                section_map[sec_id]['present_students'].append(student)
+            elif status is not None:
+                section_map[sec_id]['absent_students'].append(student)
+
+        return [section_map[s.id] for s in sections]
