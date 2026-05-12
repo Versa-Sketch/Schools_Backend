@@ -4,5 +4,4 @@ from .announcements import StudentAnnouncementsInteractor
 from .study_materials import StudentStudyMaterialsInteractor
 from .homework import StudentHomeworkInteractor
 from .calendar import StudentCalendarInteractor
-from .exams import StudentExamNotImplementedInteractor
 from .profile_pic import UpdateStudentProfilePicInteractor

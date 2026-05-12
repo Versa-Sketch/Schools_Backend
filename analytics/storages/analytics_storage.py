@@ -1,4 +1,6 @@
-from django.db.models import Avg, Count, Q
+from collections import defaultdict
+
+from django.db.models import Avg, Count, Q, Sum
 
 from core.models import AcademicClass, Section, Subject
 from student.models import StudentProfile
@@ -36,12 +38,36 @@ class AnalyticsDB:
     # --------------------------------------------------------- upload pipeline
 
     def create_exam(self, school, exam_name, exam_date, uploaded_by):
+        from analytics.constants import ANALYTICS_STATUS_PENDING
         return AnalyticsExam.objects.create(
             school=school,
             exam_name=exam_name,
             exam_date=exam_date,
             uploaded_by=uploaded_by,
+            analytics_status=ANALYTICS_STATUS_PENDING,
         )
+
+    def create_exam_record(self, school, exam_name, class_id=None, section_id=None):
+        return AnalyticsExam.objects.create(
+            school=school,
+            exam_name=exam_name,
+            academic_class_id=class_id,
+            section_id=section_id,
+        )
+
+    def get_exam_for_upload(self, exam_id, school_id):
+        try:
+            return AnalyticsExam.objects.get(id=exam_id, school_id=school_id)
+        except AnalyticsExam.DoesNotExist:
+            return None
+
+    def update_exam_on_upload(self, exam, exam_date, uploaded_by):
+        from analytics.constants import ANALYTICS_STATUS_PENDING
+        exam.exam_date = exam_date
+        exam.uploaded_by = uploaded_by
+        exam.analytics_status = ANALYTICS_STATUS_PENDING
+        exam.save(update_fields=['exam_date', 'uploaded_by', 'analytics_status', 'updated_at'])
+        return exam
 
     def get_or_create_core_subject(self, school, subject_name):
         subject = Subject.objects.filter(school=school, name__iexact=subject_name).first()
@@ -417,6 +443,145 @@ class AnalyticsDB:
             .annotate(count=Count('student_id', distinct=True))
         )
         return {str(r['student__section_id']): r['count'] for r in rows}
+
+    def get_exam_overview(self, exam_id, school_id):
+        subjects = list(
+            ExamSubject.objects
+            .filter(exam_id=exam_id, exam__school_id=school_id)
+            .order_by('subject_name')
+        )
+        class_avgs = []
+        for es in subjects:
+            agg = ExamResult.objects.filter(exam_id=exam_id, subject=es).aggregate(avg=Avg('total_marks'))
+            class_avgs.append({
+                'subject_id': str(es.id),
+                'subject_name': es.subject_name,
+                'avg': round(agg['avg'] or 0.0, 2),
+                'max_marks': es.max_marks,
+            })
+
+        section_analytics = list(
+            SectionAnalytics.objects
+            .filter(exam_id=exam_id)
+            .select_related('section', 'subject')
+            .order_by('section__name')
+        )
+        by_section = defaultdict(list)
+        section_names = {}
+        for sa in section_analytics:
+            sid = str(sa.section_id)
+            by_section[sid].append(sa.avg_marks)
+            section_names[sid] = sa.section.name
+
+        sections = [
+            {
+                'section_id': sid,
+                'section_name': section_names[sid],
+                'avg': round(sum(avgs) / len(avgs), 2) if avgs else 0,
+            }
+            for sid, avgs in sorted(by_section.items(), key=lambda x: section_names[x[0]])
+        ]
+        return {'class_avgs': class_avgs, 'sections': sections}
+
+    def get_top_students(self, exam_id, n=5):
+        rows = (
+            ExamResult.objects
+            .filter(exam_id=exam_id)
+            .values('student_id', 'student__name', 'student__student_ref_id')
+            .annotate(total=Sum('total_marks'))
+            .order_by('-total')[:n]
+        )
+        return [
+            {
+                'student_id': str(r['student_id']),
+                'name': r['student__name'],
+                'student_ref_id': r['student__student_ref_id'],
+                'total_marks': r['total'],
+                'rank': idx + 1,
+            }
+            for idx, r in enumerate(rows)
+        ]
+
+    def get_section_subject_detail(self, exam_id, section_id, school_id):
+        section_sa = list(
+            SectionAnalytics.objects
+            .filter(exam_id=exam_id, section_id=section_id)
+            .select_related('subject')
+        )
+        class_avgs = {}
+        for sa in section_sa:
+            agg = ExamResult.objects.filter(
+                exam_id=exam_id, subject_id=sa.subject_id
+            ).aggregate(avg=Avg('total_marks'))
+            class_avgs[str(sa.subject_id)] = round(agg['avg'] or 0.0, 2)
+
+        return [
+            {
+                'subject_id': str(sa.subject_id),
+                'subject_name': sa.subject.subject_name,
+                'section_avg': round(sa.avg_marks, 2),
+                'class_avg': class_avgs.get(str(sa.subject_id), 0),
+                'delta': round(sa.avg_marks - class_avgs.get(str(sa.subject_id), 0), 2),
+            }
+            for sa in sorted(section_sa, key=lambda x: x.subject.subject_name)
+        ]
+
+    def get_section_overview(self, exam_id, section_id):
+        section_sa = list(
+            SectionAnalytics.objects
+            .filter(exam_id=exam_id, section_id=section_id)
+            .select_related('subject')
+        )
+        return [
+            {
+                'subject_id':   str(sa.subject_id),
+                'subject_name': sa.subject.subject_name,
+                'avg':          round(sa.avg_marks, 2),
+                'max_marks':    sa.subject.max_marks,
+            }
+            for sa in sorted(section_sa, key=lambda x: x.subject.subject_name)
+        ]
+
+    def get_class_question_students(self, exam_id, subject_id, q_no):
+        rows = list(
+            QuestionResult.objects
+            .filter(exam_id=exam_id, subject_id=subject_id, q_no=q_no)
+            .select_related('student')
+            .order_by('student__name')
+        )
+        result = {'C': [], 'W': [], 'U': []}
+        for qr in rows:
+            result[qr.status].append({
+                'student_id': str(qr.student_id),
+                'student_ref_id': qr.student.student_ref_id,
+                'name': qr.student.name,
+            })
+        return result
+
+    def get_analytics_student_by_user(self, user):
+        try:
+            return AnalyticsStudent.objects.select_related(
+                'school', 'section', 'academic_class'
+            ).get(linked_user=user)
+        except AnalyticsStudent.DoesNotExist:
+            return None
+
+    def get_exams_for_student(self, student_id, school_id):
+        return list(
+            AnalyticsExam.objects
+            .filter(results__student_id=student_id, school_id=school_id)
+            .prefetch_related('subjects')
+            .distinct()
+            .order_by('-exam_date', '-created_at')
+        )
+
+    def get_subjects_for_student_exam(self, exam_id, student_id):
+        return list(
+            ExamResult.objects
+            .filter(exam_id=exam_id, student_id=student_id)
+            .select_related('subject')
+            .order_by('subject__subject_name')
+        )
 
     def get_question_results_for_section_question(
         self, exam_id, section_id, subject_id, q_no

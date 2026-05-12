@@ -122,11 +122,53 @@ class SectionPresenter:
             },
         }, status=200)
 
+    # ------------------------------------------------------------ Section detail
+
+    def section_detail_success(self, section, exam, subjects_with_delta):
+        return Response({
+            'exam': self._fmt_exam(exam),
+            'section': {'id': str(section.id), 'name': section.name},
+            'subjects': subjects_with_delta,
+        }, status=200)
+
+    def section_subject_questions_success(self, section, exam, exam_subject, questions):
+        return Response({
+            'exam': self._fmt_exam(exam),
+            'section': {'id': str(section.id), 'name': section.name},
+            'subject': {'id': str(exam_subject.id), 'name': exam_subject.subject_name},
+            'total_questions': len(questions),
+            'questions': [
+                {
+                    'q_no': q.q_no,
+                    'correct_count': q.correct_count,
+                    'wrong_count': q.wrong_count,
+                    'unattempted_count': q.skip_count,
+                    'difficulty_tag': q.difficulty_tag,
+                    'difficulty_index': q.difficulty_index,
+                    'has_key_error': q.has_key_error,
+                }
+                for q in questions
+            ],
+        }, status=200)
+
+    def section_question_students_success(self, section, exam, exam_subject, q_no, student_breakdown):
+        return Response({
+            'exam': self._fmt_exam(exam),
+            'section': {'id': str(section.id), 'name': section.name},
+            'subject': {'id': str(exam_subject.id), 'name': exam_subject.subject_name},
+            'q_no': q_no,
+            'students': {
+                'correct': student_breakdown.get('C', []),
+                'wrong': student_breakdown.get('W', []),
+                'unattempted': student_breakdown.get('U', []),
+            },
+        }, status=200)
+
     # ------------------------------------------------------------ shared
 
     def _fmt_exam(self, exam):
         return {
             'id':        str(exam.id),
             'exam_name': exam.exam_name,
-            'exam_date': str(exam.exam_date),
+            'exam_date': str(exam.exam_date) if exam.exam_date else None,
         }

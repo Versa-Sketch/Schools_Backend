@@ -7,12 +7,24 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from rest_framework.parsers import JSONParser
+
 from core.permissions import IsAdmin, IsPrincipal, IsParent, IsStudent, IsTeacher
 from analytics.interactors.dashboard import DashboardInteractor
+from analytics.interactors.exams import (
+    CreateExamInteractor,
+    ExamOverviewInteractor,
+    ClassSubjectQuestionsInteractor,
+    ClassQuestionStudentsInteractor,
+    SectionDetailInteractor,
+    SectionSubjectQuestionsInteractor,
+    SectionQuestionStudentsInteractor,
+)
 from analytics.interactors.section import SectionInteractor
 from analytics.interactors.student import StudentInteractor
 from analytics.interactors.upload import UploadExamCSVInteractor
 from analytics.presenters.dashboard import DashboardPresenter
+from analytics.presenters.exams import ExamPresenter
 from analytics.presenters.section import SectionPresenter
 from analytics.presenters.student import StudentPresenter
 from analytics.presenters.upload import UploadPresenter
@@ -28,6 +40,87 @@ def template_download_view(request):
     response = HttpResponse(csv_string, content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="analytics_template.csv"'
     return response
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def exams_view(request):
+    if request.method == 'POST':
+        return CreateExamInteractor(
+            storage=AnalyticsDB(), presenter=ExamPresenter(),
+        ).create(user=request.user, data=request.data)
+    return DashboardInteractor(
+        storage=AnalyticsDB(), presenter=DashboardPresenter(),
+    ).list_exams(user=request.user)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([MultiPartParser, FormParser])
+def upload_exam_view(request, exam_id):
+    return UploadExamCSVInteractor(
+        storage=AnalyticsDB(), presenter=UploadPresenter(),
+    ).upload(
+        user=request.user,
+        exam_id=exam_id,
+        csv_file=request.FILES.get('csv_file'),
+        excel_file=request.FILES.get('excel_file'),
+        pdf_file=request.FILES.get('pdf_file'),
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def exam_overview_view(request, exam_id):
+    return ExamOverviewInteractor(
+        storage=AnalyticsDB(), presenter=ExamPresenter(),
+    ).overview(user=request.user, exam_id=exam_id)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def class_subject_questions_view(request, exam_id, subject_id):
+    return ClassSubjectQuestionsInteractor(
+        storage=AnalyticsDB(), presenter=ExamPresenter(),
+    ).get(user=request.user, exam_id=exam_id, subject_id=subject_id)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def class_question_students_view(request, exam_id, subject_id, q_no):
+    return ClassQuestionStudentsInteractor(
+        storage=AnalyticsDB(), presenter=ExamPresenter(),
+    ).get(user=request.user, exam_id=exam_id, subject_id=subject_id, q_no=q_no)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def section_detail_view(request, exam_id, section_id):
+    return SectionDetailInteractor(
+        storage=AnalyticsDB(), presenter=SectionPresenter(),
+    ).get(user=request.user, exam_id=exam_id, section_id=section_id)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def section_subject_questions_view(request, exam_id, section_id, subject_id):
+    return SectionSubjectQuestionsInteractor(
+        storage=AnalyticsDB(), presenter=SectionPresenter(),
+    ).get(user=request.user, exam_id=exam_id, section_id=section_id, subject_id=subject_id)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def section_question_students_view(request, exam_id, section_id, subject_id, q_no):
+    return SectionQuestionStudentsInteractor(
+        storage=AnalyticsDB(), presenter=SectionPresenter(),
+    ).get(
+        user=request.user,
+        exam_id=exam_id,
+        section_id=section_id,
+        subject_id=subject_id,
+        q_no=q_no,
+    )
 
 
 @api_view(['POST'])

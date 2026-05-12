@@ -10,21 +10,18 @@
 
 | Endpoint | ADMIN | PRINCIPAL | TEACHER | STUDENT | PARENT |
 |---|:---:|:---:|:---:|:---:|:---:|
-| `POST /upload/` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `GET /template/` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `GET /exams/` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `GET /dashboard/` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `GET /class/<id>/` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `GET /section/<id>/` | ✅ | ✅ | ✅ own section | ❌ | ❌ |
-| `GET /section/<id>/subject/<s>/heatmap/` | ✅ | ✅ | ✅ own section | ❌ | ❌ |
-| `GET /section/<id>/subject/<s>/question/<n>/` | ✅ | ✅ | ✅ own section | ❌ | ❌ |
+| `GET/POST /exams/` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `POST /exams/<id>/upload/` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /exams/<id>/overview/` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /exams/<id>/subjects/<s>/questions/` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /exams/<id>/subjects/<s>/questions/<n>/students/` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /exams/<id>/sections/<sec>/` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /exams/<id>/sections/<sec>/subjects/<s>/questions/` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /exams/<id>/sections/<sec>/subjects/<s>/questions/<n>/students/` | ✅ | ✅ | ❌ | ❌ | ❌ |
 | `GET /student/<id>/` | ✅ | ✅ | ✅ own section | ✅ own only | ✅ own child |
 | `GET /student/<id>/subject/<s>/` | ✅ | ✅ | ✅ own section | ✅ own only | ✅ own child |
+| `GET /template/` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `POST /seed/` (DEBUG only) | ✅ | ✅ | ❌ | ❌ | ❌ |
-
-> **Teacher "own section"**: Teacher must have the target section in their `assigned_sections`.  
-> **Student "own only"**: `AnalyticsStudent.linked_user` must equal the requesting user.  
-> **Parent "own child"**: `AnalyticsStudent.linked_user` must be one of the users linked via `ParentProfile.students`.
 
 ---
 
@@ -43,7 +40,185 @@
 
 ---
 
-## 1. Upload Exam CSV
+## 1. Exam Management
+
+### `GET /api/v1/analytics/exams/` — List Exams
+
+Returns all exams for the school.
+
+Response `200`:
+```json
+{
+  "success": true,
+  "exams": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "exam_name": "Unit Test 1",
+      "exam_date": "2026-04-15",
+      "analytics_status": "DONE"
+    }
+  ]
+}
+```
+
+### `POST /api/v1/analytics/exams/` — Create Exam
+
+**Content-Type:** `application/json`
+
+**Request fields:**
+
+| Field | Type | Required | Description |
+|---|---|:---:|---|
+| `exam_name` | string | ✅ | Name of the exam |
+| `class_id` | UUID | one of | Creates a **class-level** exam — all sections of this class are included |
+| `section_id` | UUID | one of | Creates a **section-level** exam — only this section is included |
+
+Provide exactly one of `class_id` or `section_id`.
+
+Request (class exam):
+```json
+{ "exam_name": "Unit Test 1", "class_id": "aaaa-..." }
+```
+
+Request (section exam):
+```json
+{ "exam_name": "Unit Test 1", "section_id": "bbbb-..." }
+```
+
+Response `201`:
+```json
+{
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "exam_name": "Unit Test 1",
+  "analytics_status": "CREATED",
+  "academic_class": { "id": "...", "name": "Class 11" },
+  "section": null,
+  "created_at": "2026-05-12T10:00:00Z"
+}
+```
+
+### `POST /api/v1/analytics/exams/{exam_id}/upload/` — Upload File
+
+**Content-Type:** `multipart/form-data`  
+Exam must be in `CREATED` status.
+
+| Field | Type | Description |
+|---|---|---|
+| `csv_file` | File | CSV result file |
+| `excel_file` | File | Excel rank-card file |
+| `pdf_file` | File | PDF result file |
+
+Response `202`: same as legacy upload response.
+
+### `GET /api/v1/analytics/exams/{exam_id}/overview/` — Exam Overview
+
+Response shape depends on whether the exam was created with `class_id` or `section_id`.
+
+#### Class exam (`type: "CLASS"`) — created with `class_id`
+
+All sections of the class are included. Response shows class-wide averages and a section breakdown.
+
+Response `200`:
+```json
+{
+  "exam": {
+    "id": "...", "exam_name": "Unit Test 1",
+    "exam_date": "2026-04-15", "analytics_status": "DONE",
+    "type": "CLASS"
+  },
+  "class_avgs": [
+    { "subject_id": "...", "subject_name": "MATHS",     "avg": 62.5, "max_marks": 80 },
+    { "subject_id": "...", "subject_name": "PHYSICS",   "avg": 28.0, "max_marks": 40 },
+    { "subject_id": "...", "subject_name": "CHEMISTRY", "avg": 30.1, "max_marks": 40 }
+  ],
+  "sections": [
+    { "section_id": "...", "section_name": "A", "avg": 64.2 },
+    { "section_id": "...", "section_name": "B", "avg": 60.8 }
+  ],
+  "top_students": [
+    { "student_id": "...", "name": "Aarav Mehta", "student_ref_id": "S001", "total_marks": 148, "rank": 1 }
+  ]
+}
+```
+
+#### Section exam (`type: "SECTION"`) — created with `section_id`
+
+Only one section is included. Response shows that section's subject averages directly (no section breakdown step needed).
+
+Response `200`:
+```json
+{
+  "exam": {
+    "id": "...", "exam_name": "Unit Test 1",
+    "exam_date": "2026-04-15", "analytics_status": "DONE",
+    "type": "SECTION"
+  },
+  "section": { "id": "...", "name": "A" },
+  "subject_avgs": [
+    { "subject_id": "...", "subject_name": "CHEMISTRY", "avg": 30.1, "max_marks": 40 },
+    { "subject_id": "...", "subject_name": "MATHS",     "avg": 62.5, "max_marks": 80 },
+    { "subject_id": "...", "subject_name": "PHYSICS",   "avg": 28.0, "max_marks": 40 }
+  ],
+  "top_students": [
+    { "student_id": "...", "name": "Aarav Mehta", "student_ref_id": "S001", "total_marks": 148, "rank": 1 }
+  ]
+}
+```
+
+### `GET /api/v1/analytics/exams/{exam_id}/subjects/{subject_id}/questions/` — Class Question Stats
+
+Response `200`:
+```json
+{
+  "exam": { "id": "...", "exam_name": "Unit Test 1" },
+  "subject": { "id": "...", "name": "MATHS" },
+  "total_questions": 80,
+  "questions": [
+    { "q_no": 1, "correct_count": 18, "wrong_count": 3, "unattempted_count": 0, "difficulty_tag": "HARD", "difficulty_index": 85.7, "has_key_error": false }
+  ]
+}
+```
+
+### `GET /api/v1/analytics/exams/{exam_id}/subjects/{subject_id}/questions/{q_no}/students/` — Class Question Students
+
+Response `200`:
+```json
+{
+  "exam": { "id": "...", "exam_name": "Unit Test 1" },
+  "subject": { "id": "...", "name": "MATHS" },
+  "q_no": 1,
+  "students": {
+    "correct":     [{ "student_id": "...", "student_ref_id": "S001", "name": "Aarav Mehta" }],
+    "wrong":       [],
+    "unattempted": []
+  }
+}
+```
+
+### `GET /api/v1/analytics/exams/{exam_id}/sections/{section_id}/` — Section Detail
+
+Response `200`:
+```json
+{
+  "exam": { "id": "...", "exam_name": "Unit Test 1" },
+  "section": { "id": "...", "name": "A" },
+  "subjects": [
+    { "subject_id": "...", "subject_name": "MATHS", "section_avg": 74.0, "class_avg": 72.5, "delta": 1.5 }
+  ]
+}
+```
+
+### `GET /api/v1/analytics/exams/{exam_id}/sections/{section_id}/subjects/{subject_id}/questions/` — Section Question Stats
+
+Same shape as class question stats, with added `section` field.
+
+### `GET /api/v1/analytics/exams/{exam_id}/sections/{section_id}/subjects/{subject_id}/questions/{q_no}/students/` — Section Question Students
+
+Same shape as class question students, filtered to the section only.
+
+---
+
+## 2. Upload Exam CSV (Legacy)
 
 ```
 POST /api/v1/analytics/upload/

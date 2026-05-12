@@ -11,7 +11,6 @@ from .interactors import (
     StudentStudyMaterialsInteractor,
     StudentHomeworkInteractor,
     StudentCalendarInteractor,
-    StudentExamNotImplementedInteractor,
     UpdateStudentProfilePicInteractor,
 )
 from .presenters.profile import StudentProfilePresenter
@@ -20,8 +19,14 @@ from .presenters.announcements import StudentAnnouncementsPresenter
 from .presenters.study_materials import StudentStudyMaterialsPresenter
 from .presenters.homework import StudentHomeworkPresenter
 from .presenters.calendar import StudentCalendarPresenter
-from .presenters.exams import StudentExamPresenter
 from .presenters.profile_pic import ProfilePicPresenter
+from analytics.interactors.student_exams import (
+    StudentExamListInteractor,
+    StudentExamSubjectsInteractor,
+    StudentSubjectQuestionsInteractor,
+)
+from analytics.presenters.student import StudentPresenter
+from analytics.storages.analytics_storage import AnalyticsDB
 
 
 @api_view(['PATCH'])
@@ -109,10 +114,22 @@ def calendar_events_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsStudent | IsAdmin])
 def exams_view(request):
-    return StudentExamNotImplementedInteractor(presenter=StudentExamPresenter()).respond(user=request.user)
+    return StudentExamListInteractor(
+        storage=AnalyticsDB(), presenter=StudentPresenter(),
+    ).list(user=request.user)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsStudent | IsAdmin])
-def results_view(request):
-    return StudentExamNotImplementedInteractor(presenter=StudentExamPresenter()).respond(user=request.user)
+def exam_subjects_view(request, exam_id):
+    return StudentExamSubjectsInteractor(
+        storage=AnalyticsDB(), presenter=StudentPresenter(),
+    ).list(user=request.user, exam_id=exam_id)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsStudent | IsAdmin])
+def exam_subject_questions_view(request, exam_id, subject_id):
+    return StudentSubjectQuestionsInteractor(
+        storage=AnalyticsDB(), presenter=StudentPresenter(),
+    ).list(user=request.user, exam_id=exam_id, subject_id=subject_id)

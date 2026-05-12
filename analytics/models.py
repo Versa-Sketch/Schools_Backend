@@ -7,7 +7,7 @@ from core.models import AcademicClass, School, Section, Subject, TimeStampedMode
 
 from .constants import (
     ANALYTICS_STATUS_CHOICES,
-    ANALYTICS_STATUS_PENDING,
+    ANALYTICS_STATUS_CREATED,
     DIFFICULTY_CHOICES,
     PERFORMANCE_CHOICES,
     QUESTION_STATUS_CHOICES,
@@ -17,19 +17,33 @@ from .constants import (
 
 
 class AnalyticsExam(TimeStampedModel):
-    """One per CSV upload — may span multiple sections of the same exam event."""
-
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='analytics_exams')
     exam_name = models.CharField(max_length=255)
-    exam_date = models.DateField()
+    exam_date = models.DateField(null=True, blank=True)
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-    )   
+        null=True,
+        blank=True,
+    )
+    academic_class = models.ForeignKey(
+        AcademicClass,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='analytics_exams',
+    )
+    section = models.ForeignKey(
+        Section,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='analytics_exams_direct',
+    )
     analytics_status = models.CharField(
         max_length=10,
         choices=ANALYTICS_STATUS_CHOICES,
-        default=ANALYTICS_STATUS_PENDING,
+        default=ANALYTICS_STATUS_CREATED,
     )
 
     class Meta:

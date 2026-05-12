@@ -11,5 +11,7 @@ urlpatterns = [
     path('homework/', views.homework_view, name='student-homework'),
     path('calendar-events/', views.calendar_events_view, name='student-calendar-events'),
     path('exams/', views.exams_view, name='student-exams'),
-    path('results/', views.results_view, name='student-results'),
+    path('exams/<uuid:exam_id>/subjects/', views.exam_subjects_view, name='student-exam-subjects'),
+    path('exams/<uuid:exam_id>/subjects/<uuid:subject_id>/questions/',
+         views.exam_subject_questions_view, name='student-exam-subject-questions'),
 ]

@@ -106,13 +106,51 @@ class StudentPresenter:
         return {
             'id':        str(exam.id),
             'exam_name': exam.exam_name,
-            'exam_date': str(exam.exam_date),
+            'exam_date': str(exam.exam_date) if exam.exam_date else None,
         }
 
     def _fmt_exam_summary(self, exam):
         return {
             'id':               str(exam.id),
             'exam_name':        exam.exam_name,
-            'exam_date':        str(exam.exam_date),
+            'exam_date':        str(exam.exam_date) if exam.exam_date else None,
             'analytics_status': exam.analytics_status,
         }
+
+    # ------------------------------------------------------------ Student exam screens
+
+    def exam_list_success(self, exams):
+        return Response({
+            'count': len(exams),
+            'exams': [self._fmt_exam_summary(e) for e in exams],
+        }, status=200)
+
+    def exam_subjects_success(self, exam, exam_results):
+        subjects = []
+        for er in exam_results:
+            mm = er.subject.max_marks or 1
+            subjects.append({
+                'subject_id': str(er.subject_id),
+                'subject_name': er.subject.subject_name,
+                'total_marks': er.total_marks,
+                'max_marks': mm,
+                'percentage': round((er.total_marks / mm) * 100, 1),
+                'correct': er.correct,
+                'wrong': er.wrong,
+                'unattempted': er.unattempted,
+                'exam_rank': er.exam_rank,
+            })
+        return Response({
+            'exam': self._fmt_exam(exam),
+            'subjects': subjects,
+        }, status=200)
+
+    def subject_questions_success(self, exam, exam_subject, question_results):
+        return Response({
+            'exam': self._fmt_exam(exam),
+            'subject': {'id': str(exam_subject.id), 'name': exam_subject.subject_name},
+            'questions': [
+                {'q_no': qr.q_no, 'status': qr.status}
+                for qr in question_results
+            ],
+        }, status=200)

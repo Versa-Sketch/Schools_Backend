@@ -214,13 +214,65 @@ Response:
 
 ### `GET /api/v1/student/exams/`
 
-Returns `501 EXAM_MODEL_NOT_IMPLEMENTED`.
+Returns all exams the student participated in (requires linked `AnalyticsStudent` record).
 
-## Results
+Response `200`:
+```json
+{
+  "count": 2,
+  "exams": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "exam_name": "Unit Test 1",
+      "exam_date": "2026-04-15",
+      "analytics_status": "DONE"
+    }
+  ]
+}
+```
 
-### `GET /api/v1/student/results/`
+### `GET /api/v1/student/exams/{exam_id}/subjects/`
 
-Returns `501 EXAM_MODEL_NOT_IMPLEMENTED`.
+Returns subjects with the student's marks summary for a given exam.
+
+Response `200`:
+```json
+{
+  "exam": { "id": "...", "exam_name": "Unit Test 1", "exam_date": "2026-04-15" },
+  "subjects": [
+    {
+      "subject_id": "...",
+      "subject_name": "MATHS",
+      "total_marks": 65,
+      "max_marks": 80,
+      "percentage": 81.3,
+      "correct": 65,
+      "wrong": 10,
+      "unattempted": 5,
+      "exam_rank": 3
+    }
+  ]
+}
+```
+
+### `GET /api/v1/student/exams/{exam_id}/subjects/{subject_id}/questions/`
+
+Returns per-question result (correct / wrong / unattempted) for the student.
+
+Response `200`:
+```json
+{
+  "exam": { "id": "...", "exam_name": "Unit Test 1" },
+  "subject": { "id": "...", "name": "MATHS" },
+  "questions": [
+    { "q_no": 1, "status": "C" },
+    { "q_no": 2, "status": "W" },
+    { "q_no": 3, "status": "U" }
+  ]
+}
+```
+
+Status values: `C` = Correct, `W` = Wrong, `U` = Unattempted.
 
 ## Student Test Scenarios
 

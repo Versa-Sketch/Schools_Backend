@@ -16,7 +16,7 @@ class UploadExamCSVInteractor:
         self.storage = storage
         self.presenter = presenter
 
-    def upload(self, user, csv_file=None, excel_file=None, pdf_file=None):
+    def upload(self, user, csv_file=None, excel_file=None, pdf_file=None, exam_id=None):
         if user.role not in ('ADMIN', 'PRINCIPAL'):
             raise PrincipalPermissionException()
 
@@ -25,9 +25,6 @@ class UploadExamCSVInteractor:
             raise NotFoundException('Principal profile not found.')
         school = profile.school
 
-        # Select parser based on which file field was provided.
-        # Excel/PDF: section and class are resolved via StudentProfile.admission_number.
-        # CSV: class and section come from columns in each row.
         if pdf_file is not None:
             parse_result = parse_pdf_file(pdf_file)
         elif excel_file is not None:
@@ -46,12 +43,27 @@ class UploadExamCSVInteractor:
             )
 
         with transaction.atomic():
-            exam = self.storage.create_exam(
-                school=school,
-                exam_name=parse_result.exam_meta.exam_name,
-                exam_date=parse_result.exam_meta.exam_date,
-                uploaded_by=user,
-            )
+            if exam_id is not None:
+                exam = self.storage.get_exam_for_upload(exam_id, school.id)
+                if exam is None:
+                    raise NotFoundException('Exam not found.')
+                from analytics.constants import ANALYTICS_STATUS_CREATED
+                if exam.analytics_status != ANALYTICS_STATUS_CREATED:
+                    raise AnalyticsValidationError(
+                        f'Exam is not in CREATED state (current: {exam.analytics_status}).'
+                    )
+                exam = self.storage.update_exam_on_upload(
+                    exam=exam,
+                    exam_date=parse_result.exam_meta.exam_date,
+                    uploaded_by=user,
+                )
+            else:
+                exam = self.storage.create_exam(
+                    school=school,
+                    exam_name=parse_result.exam_meta.exam_name,
+                    exam_date=parse_result.exam_meta.exam_date,
+                    uploaded_by=user,
+                )
 
             exam_subjects = {}
             for subject_name, cols in parse_result.question_cols.items():

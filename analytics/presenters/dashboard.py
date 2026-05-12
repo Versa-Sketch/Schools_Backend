@@ -71,7 +71,7 @@ class DashboardPresenter:
         return {
             'id':               str(exam.id),
             'exam_name':        exam.exam_name,
-            'exam_date':        str(exam.exam_date),
+            'exam_date':        str(exam.exam_date) if exam.exam_date else None,
             'analytics_status': exam.analytics_status,
         }
 
@@ -79,7 +79,7 @@ class DashboardPresenter:
         return {
             'id':               str(exam.id),
             'exam_name':        exam.exam_name,
-            'exam_date':        str(exam.exam_date),
+            'exam_date':        str(exam.exam_date) if exam.exam_date else None,
             'analytics_status': exam.analytics_status,
         }
 
