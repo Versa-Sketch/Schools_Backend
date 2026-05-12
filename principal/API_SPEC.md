@@ -298,6 +298,120 @@ Rules:
 - A parent can only create queries when **both** the school-level and section-level flags are `true`.
 - The `is_parent_query_disabled` field returned in `GET /api/v1/parent/profile/` reflects the combined result of both flags.
 
+## Attendance
+
+### `GET /api/v1/principal/attendance/daily-summary/`
+
+Returns class-wise attendance counts and percentage for a given date. Only confirmed attendance sessions are counted. A student is considered **present** for the day if they were marked present in any slot (MORNING or AFTERNOON).
+
+Query params:
+
+- `date`: optional `YYYY-MM-DD` — defaults to today. Invalid formats fall back to today.
+
+Response:
+
+```json
+{
+  "date": "2026-05-11",
+  "classes": [
+    {
+      "class_id": "22222222-2222-2222-2222-222222222222",
+      "class_name": "Class 5",
+      "total_students": 80,
+      "present_count": 72,
+      "absent_count": 8,
+      "attendance_percentage": 90.0
+    },
+    {
+      "class_id": "22222222-2222-2222-2222-222222222223",
+      "class_name": "Class 6",
+      "total_students": 60,
+      "present_count": 45,
+      "absent_count": 15,
+      "attendance_percentage": 75.0
+    }
+  ]
+}
+```
+
+Notes:
+
+- `attendance_percentage = present_count / total_students * 100`, rounded to 2 decimal places.
+- `absent_count` includes students whose section's attendance has not been confirmed yet (i.e., `absent_count = total_students - present_count`).
+- Classes are ordered by `display_order` then `name`.
+
+---
+
+### `GET /api/v1/principal/attendance/classes/{class_id}/`
+
+Returns the full attendance breakdown for a single class: class-level present/absent student name lists, class percentage, and the same breakdown per section. `{class_id}` is a UUID.
+
+Query params:
+
+- `date`: optional `YYYY-MM-DD` — defaults to today.
+
+Response:
+
+```json
+{
+  "date": "2026-05-11",
+  "class_id": "22222222-2222-2222-2222-222222222222",
+  "class_name": "Class 5",
+  "total_students": 80,
+  "present_count": 72,
+  "absent_count": 8,
+  "attendance_percentage": 90.0,
+  "present_students": [
+    {"id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "Alice", "section": "A"},
+    {"id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "name": "Bob", "section": "B"}
+  ],
+  "absent_students": [
+    {"id": "cccccccc-cccc-cccc-cccc-cccccccccccc", "name": "Charlie", "section": "A"}
+  ],
+  "sections": [
+    {
+      "section_id": "33333333-3333-3333-3333-333333333333",
+      "section_name": "A",
+      "total_students": 40,
+      "present_count": 38,
+      "absent_count": 2,
+      "attendance_percentage": 95.0,
+      "present_students": [
+        {"id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "Alice"}
+      ],
+      "absent_students": [
+        {"id": "cccccccc-cccc-cccc-cccc-cccccccccccc", "name": "Charlie"}
+      ]
+    },
+    {
+      "section_id": "33333333-3333-3333-3333-333333333334",
+      "section_name": "B",
+      "total_students": 40,
+      "present_count": 34,
+      "absent_count": 6,
+      "attendance_percentage": 85.0,
+      "present_students": [
+        {"id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "name": "Bob"}
+      ],
+      "absent_students": []
+    }
+  ]
+}
+```
+
+Notes:
+
+- Students with no confirmed attendance record for the day are counted in `total_students` and `absent_count` but **not listed** in `present_students` or `absent_students`.
+- Class-level `present_students` and `absent_students` include students from all sections, each with a `section` field showing the section name.
+- Section-level name lists omit the `section` field.
+- Sections are ordered alphabetically by name.
+
+Errors:
+
+- `404 NOT_FOUND` if `class_id` does not belong to the principal's school.
+
+---
+
 ## Exam Management
 
 ### `POST /api/v1/principal/exams/` and `GET /api/v1/principal/exams/`
