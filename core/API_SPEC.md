@@ -254,7 +254,12 @@ Response:
   "address": "School address",
   "contact_email": "office@example.com",
   "contact_phone": "9999999999",
-  "is_active": true
+  "is_active": true,
+  "configuration": {
+    "attendance_frequency": "TWICE",
+    "whatsapp_absent_automation_enabled": true,
+    "parent_query_enabled": true
+  }
 }
 ```
 
