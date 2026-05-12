@@ -346,6 +346,23 @@ Response:
 }
 ```
 
+### `POST /api/v1/teacher/parent-queries/{id}/close/`
+
+`{id}` is the query UUID. No request body required.
+
+Response:
+
+```json
+{
+  "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "status": "CLOSED"
+}
+```
+
+Errors:
+- `404` if query not found or does not belong to this teacher
+- `400` if query is already `CLOSED`
+
 ## Teacher Test Scenarios
 
 - Teacher sees only assigned and class teacher sections.

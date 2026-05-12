@@ -27,3 +27,6 @@ class ParentQueriesPresenter:
             'query_status': query.status,
             'created_at': reply.created_at.isoformat(),
         }, status=201)
+
+    def close_query_success(self, query):
+        return Response({'id': query.id, 'status': query.status}, status=200)

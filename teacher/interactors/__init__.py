@@ -3,6 +3,6 @@ from .attendance import CreateAttendanceSessionInteractor, MarkAttendanceInterac
 from .announcements import CreateTeacherAnnouncementInteractor
 from .study_materials import CreateStudyMaterialInteractor, ListStudyMaterialsInteractor
 from .homework import CreateHomeworkInteractor, ListHomeworkInteractor
-from .parent_queries import ListParentQueriesInteractor, ReplyToQueryInteractor
+from .parent_queries import ListParentQueriesInteractor, ReplyToQueryInteractor, CloseQueryInteractor
 from .exams import ExamMarksNotImplementedInteractor
 from .profile_pic import UpdateTeacherProfilePicInteractor

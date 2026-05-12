@@ -17,6 +17,25 @@ class ListParentQueriesInteractor:
         return self.presenter.query_list_success(queries=queries)
 
 
+class CloseQueryInteractor:
+    def __init__(self, storage, presenter):
+        self.storage = storage
+        self.presenter = presenter
+
+    def close(self, user, query_id):
+        _ensure_teacher(user)
+        teacher = self.storage.get_teacher_profile(user)
+        if teacher is None:
+            raise NotFoundException('Teacher profile not found.')
+        query = self.storage.get_parent_query_by_id(query_id, teacher)
+        if query is None:
+            raise NotFoundException(constants.QUERY_NOT_FOUND)
+        if query.status == 'CLOSED':
+            raise ValidationException(constants.QUERY_ALREADY_CLOSED)
+        query = self.storage.close_query(query)
+        return self.presenter.close_query_success(query)
+
+
 class ReplyToQueryInteractor:
     def __init__(self, storage, presenter):
         self.storage = storage

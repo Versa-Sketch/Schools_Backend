@@ -207,3 +207,8 @@ class TeacherDB:
                 query.status = 'ANSWERED'
                 query.save(update_fields=['status', 'updated_at'])
         return reply, query
+
+    def close_query(self, query):
+        query.status = 'CLOSED'
+        query.save(update_fields=['status', 'updated_at'])
+        return query
