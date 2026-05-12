@@ -17,6 +17,8 @@ from .interactors import (
     GetBulkUploadStatusInteractor,
     CreateAnnouncementInteractor,
     CreateCalendarEventInteractor,
+    UpdateCalendarEventInteractor,
+    DeleteCalendarEventInteractor,
     ListSectionsInteractor,
     UpdateSectionInteractor,
     DailyAttendanceSummaryInteractor,
@@ -104,6 +106,19 @@ def calendar_event_create_view(request):
     return CreateCalendarEventInteractor(
         storage=PrincipalDB(), presenter=CalendarPresenter(),
     ).create_event(user=request.user, data=request.data)
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([JSONParser])
+def calendar_event_detail_view(request, event_id):
+    if request.method == 'DELETE':
+        return DeleteCalendarEventInteractor(
+            storage=PrincipalDB(), presenter=CalendarPresenter(),
+        ).delete_event(user=request.user, event_id=event_id)
+    return UpdateCalendarEventInteractor(
+        storage=PrincipalDB(), presenter=CalendarPresenter(),
+    ).update_event(user=request.user, event_id=event_id, data=request.data)
 
 
 @api_view(['GET'])

@@ -2,6 +2,6 @@ from .configuration import GetConfigurationInteractor, UpdateConfigurationIntera
 from .teachers import ListTeachersInteractor, CreateTeacherInteractor, UpdateTeacherInteractor
 from .bulk_upload import BulkUploadStudentsInteractor, GetBulkUploadStatusInteractor
 from .announcements import CreateAnnouncementInteractor
-from .calendar import CreateCalendarEventInteractor
+from .calendar import CreateCalendarEventInteractor, UpdateCalendarEventInteractor, DeleteCalendarEventInteractor
 from .sections import ListSectionsInteractor, UpdateSectionInteractor
 from .attendance import DailyAttendanceSummaryInteractor, ClassAttendanceDetailInteractor

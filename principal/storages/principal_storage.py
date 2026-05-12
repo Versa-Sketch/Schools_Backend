@@ -273,6 +273,21 @@ class PrincipalDB:
             description=description or '', visible_to=visible_to,
         )
 
+    def get_calendar_event(self, event_id, school_id):
+        try:
+            return AcademicCalendarEvent.objects.get(id=event_id, school_id=school_id)
+        except AcademicCalendarEvent.DoesNotExist:
+            return None
+
+    def update_calendar_event(self, event, updates):
+        for key, value in updates.items():
+            setattr(event, key, value)
+        event.save()
+        return event
+
+    def delete_calendar_event(self, event):
+        event.delete()
+
     # --- Attendance ---
 
     def get_academic_class_by_id(self, school_id, class_id):
