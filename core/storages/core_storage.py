@@ -23,6 +23,13 @@ class CoreDB:
             return None
         return getattr(user, attr, None)
 
+    def get_school_configuration(self, school_id):
+        from core.models import SchoolConfiguration
+        try:
+            return SchoolConfiguration.objects.get(school_id=school_id)
+        except SchoolConfiguration.DoesNotExist:
+            return None
+
     def get_classes_for_school(self, school_id):
         return AcademicClass.objects.filter(school_id=school_id)
 

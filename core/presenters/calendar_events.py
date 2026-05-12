@@ -1,3 +1,4 @@
+from datetime import date
 from rest_framework.response import Response
 
 
@@ -15,4 +16,4 @@ class CalendarEventPresenter:
             }
             for e in events
         ]
-        return Response({'count': len(results), 'results': results}, status=200)
+        return Response({'today': str(date.today()), 'count': len(results), 'results': results}, status=200)

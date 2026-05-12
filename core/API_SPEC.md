@@ -139,14 +139,22 @@ Response for teacher:
 
 ```json
 {
-  "id": "88888888-8888-8888-8888-888888888888",
-  "username": "teacher1",
-  "role": "TEACHER",
-  "profile_pic_url": "https://bucket.s3.region.amazonaws.com/profile_pics/uuid.jpg",
+  "success": true,
+  "user": {
+    "id": "88888888-8888-8888-8888-888888888888",
+    "username": "teacher1",
+    "phone_number": "9999999999",
+    "email": "",
+    "role": "TEACHER",
+    "school_id": "11111111-1111-1111-1111-111111111111",
+    "school_name": "Green Valley School",
+    "profile_pic_url": null
+  },
   "profile": {
     "id": "55555555-5555-5555-5555-555555555555",
+    "school_id": "11111111-1111-1111-1111-111111111111",
+    "school_name": "Green Valley School",
     "name": "Anita Sharma",
-    "mobile_number": "9999999999",
     "primary_subject": {
       "id": "44444444-4444-4444-4444-444444444444",
       "name": "Mathematics"
@@ -158,11 +166,68 @@ Response for teacher:
         "section_name": "A"
       }
     ]
+  }
+}
+```
+
+Response for student:
+
+```json
+{
+  "success": true,
+  "user": {
+    "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "username": "student1",
+    "role": "STUDENT",
+    "school_id": "11111111-1111-1111-1111-111111111111",
+    "school_name": "Green Valley School",
+    "profile_pic_url": null
   },
-  "school": {
-    "id": "11111111-1111-1111-1111-111111111111",
-    "name": "Green Valley School",
-    "subdomain": "green-valley"
+  "profile": {
+    "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "school_id": "11111111-1111-1111-1111-111111111111",
+    "school_name": "Green Valley School",
+    "name": "Alice",
+    "roll_number": "101",
+    "admission_number": "ADM001",
+    "academic_class": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Class 5"
+    },
+    "section": {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "A"
+    }
+  }
+}
+```
+
+Response for parent:
+
+```json
+{
+  "success": true,
+  "user": {
+    "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    "username": "parent1",
+    "role": "PARENT",
+    "school_id": "11111111-1111-1111-1111-111111111111",
+    "school_name": "Green Valley School",
+    "profile_pic_url": null
+  },
+  "profile": {
+    "id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+    "school_id": "11111111-1111-1111-1111-111111111111",
+    "school_name": "Green Valley School",
+    "name": "Anil Sharma",
+    "students": [
+      {
+        "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+        "name": "Alice",
+        "academic_class_name": "Class 5",
+        "section_name": "A"
+      }
+    ]
   }
 }
 ```
@@ -189,7 +254,12 @@ Response:
   "address": "School address",
   "contact_email": "office@example.com",
   "contact_phone": "9999999999",
-  "is_active": true
+  "is_active": true,
+  "configuration": {
+    "attendance_frequency": "TWICE",
+    "whatsapp_absent_automation_enabled": true,
+    "parent_query_enabled": true
+  }
 }
 ```
 
@@ -280,6 +350,7 @@ Response:
 
 ```json
 {
+  "today": "2026-05-12",
   "count": 1,
   "results": [
     {

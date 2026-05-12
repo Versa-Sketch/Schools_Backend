@@ -221,7 +221,7 @@ Request:
 }
 ```
 
-Response:
+Response (`201 Created`):
 
 ```json
 {
@@ -239,6 +239,47 @@ Validation:
 
 - `event_type` must be `HOLIDAY`, `EXAM`, or `EVENT`.
 - `end_date` must be on or after `start_date`.
+
+### `PATCH /api/v1/principal/calendar-events/{event_id}/`
+
+`{event_id}` is the calendar event UUID. All fields are optional — only provided fields are updated.
+
+Request:
+
+```json
+{
+  "title": "Updated Annual Day",
+  "event_type": "EVENT",
+  "start_date": "2026-08-11",
+  "end_date": "2026-08-11",
+  "description": "Updated description.",
+  "visible_to": ["TEACHER", "STUDENT"]
+}
+```
+
+Response (`200 OK`): updated event object (same shape as POST response).
+
+Errors:
+
+- `404 NOT_FOUND` if `event_id` does not belong to the principal's school.
+- `VALIDATION_ERROR` if `event_type` is invalid or `end_date` is before `start_date`.
+
+### `DELETE /api/v1/principal/calendar-events/{event_id}/`
+
+`{event_id}` is the calendar event UUID.
+
+Response (`200 OK`):
+
+```json
+{
+  "success": true,
+  "message": "Calendar event deleted successfully."
+}
+```
+
+Errors:
+
+- `404 NOT_FOUND` if `event_id` does not belong to the principal's school.
 
 ## Section Query Management
 

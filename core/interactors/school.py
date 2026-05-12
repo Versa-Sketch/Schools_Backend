@@ -13,4 +13,6 @@ class SchoolInteractor:
         school = getattr(profile, 'school', None)
         if school is None:
             raise NotFoundException('No school associated with this user.')
-        return self.presenter.success(school=school)
+        
+        config = self.storage.get_school_configuration(school.id)
+        return self.presenter.success(school=school, config=config)

@@ -10,6 +10,7 @@ urlpatterns = [
     path('students/bulk-upload/<uuid:batch_id>/', views.bulk_upload_status_view, name='principal-bulk-upload-status'),
     path('announcements/', views.announcement_create_view, name='principal-announcement-create'),
     path('calendar-events/', views.calendar_event_create_view, name='principal-calendar-event-create'),
+    path('calendar-events/<uuid:event_id>/', views.calendar_event_detail_view, name='principal-calendar-event-detail'),
     path('sections/', views.section_list_view, name='principal-section-list'),
     path('sections/<uuid:section_id>/', views.section_detail_view, name='principal-section-detail'),
     path('attendance/daily-summary/', views.daily_attendance_summary_view, name='principal-attendance-daily-summary'),
