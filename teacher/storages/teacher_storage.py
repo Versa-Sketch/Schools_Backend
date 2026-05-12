@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Prefetch
 from django.utils import timezone
 
 from core.models import (
@@ -212,3 +213,13 @@ class TeacherDB:
         query.status = 'CLOSED'
         query.save(update_fields=['status', 'updated_at'])
         return query
+
+    def get_parent_query_with_replies(self, query_id, teacher_profile):
+        try:
+            return ParentQuery.objects.select_related(
+                'parent', 'student', 'section', 'assigned_teacher'
+            ).prefetch_related(
+                Prefetch('parentqueryreply_set', queryset=ParentQueryReply.objects.select_related('sender'))
+            ).get(id=query_id, assigned_teacher=teacher_profile)
+        except ParentQuery.DoesNotExist:
+            return None

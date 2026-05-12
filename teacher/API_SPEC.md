@@ -320,6 +320,43 @@ Response:
 }
 ```
 
+### `GET /api/v1/teacher/parent-queries/{id}/`
+
+`{id}` is the query UUID. Returns the query detail with full reply thread.
+
+Response:
+
+```json
+{
+  "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "subject": "Homework doubt",
+  "message": "Please explain the homework.",
+  "status": "OPEN",
+  "parent": {
+    "id": "77777777-7777-7777-7777-777777777777",
+    "name": "Ramesh Kumar"
+  },
+  "student": {
+    "id": "66666666-6666-6666-6666-666666666666",
+    "name": "Aarav Mehta"
+  },
+  "section_id": "33333333-3333-3333-3333-333333333333",
+  "created_at": "2026-05-05T12:00:00Z",
+  "replies": [
+    {
+      "id": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
+      "sender_id": "88888888-8888-8888-8888-888888888888",
+      "sender_role": "TEACHER",
+      "message": "I will explain it again tomorrow.",
+      "created_at": "2026-05-05T12:15:00Z"
+    }
+  ]
+}
+```
+
+Errors:
+- `404` if query not found or does not belong to this teacher
+
 ### `POST /api/v1/teacher/parent-queries/{id}/replies/`
 
 `{id}` is the query UUID.

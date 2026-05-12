@@ -17,6 +17,22 @@ class ListParentQueriesInteractor:
         return self.presenter.query_list_success(queries=queries)
 
 
+class GetQueryDetailInteractor:
+    def __init__(self, storage, presenter):
+        self.storage = storage
+        self.presenter = presenter
+
+    def get_detail(self, user, query_id):
+        _ensure_teacher(user)
+        teacher = self.storage.get_teacher_profile(user)
+        if teacher is None:
+            raise NotFoundException('Teacher profile not found.')
+        query = self.storage.get_parent_query_with_replies(query_id, teacher)
+        if query is None:
+            raise NotFoundException(constants.QUERY_NOT_FOUND)
+        return self.presenter.query_detail_success(query)
+
+
 class CloseQueryInteractor:
     def __init__(self, storage, presenter):
         self.storage = storage

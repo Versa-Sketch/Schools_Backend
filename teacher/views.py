@@ -18,6 +18,7 @@ from .interactors import (
     ListParentQueriesInteractor,
     ReplyToQueryInteractor,
     CloseQueryInteractor,
+    GetQueryDetailInteractor,
     ExamMarksNotImplementedInteractor,
     UpdateTeacherProfilePicInteractor,
 )
@@ -139,6 +140,14 @@ def parent_query_list_view(request):
         status=request.query_params.get('status'),
         section_id=request.query_params.get('section_id'),
     )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
+def parent_query_detail_view(request, query_id):
+    return GetQueryDetailInteractor(
+        storage=TeacherDB(), presenter=ParentQueriesPresenter(),
+    ).get_detail(user=request.user, query_id=query_id)
 
 
 @api_view(['POST'])
