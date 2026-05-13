@@ -61,6 +61,7 @@ Response:
   "students": [
     {
       "id": "66666666-6666-6666-6666-666666666666",
+      "user_id": "88888888-8888-8888-8888-888888888888",
       "name": "Aarav Mehta",
       "roll_number": "1",
       "academic_class": {
@@ -86,6 +87,7 @@ Response:
   "results": [
     {
       "id": "66666666-6666-6666-6666-666666666666",
+      "user_id": "88888888-8888-8888-8888-888888888888",
       "name": "Aarav Mehta",
       "roll_number": "1",
       "admission_number": "ADM001",

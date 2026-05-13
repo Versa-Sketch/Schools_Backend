@@ -480,3 +480,72 @@ class PrincipalDB:
                 section_map[sec_id]['absent_students'].append(student)
 
         return [section_map[s.id] for s in sections]
+
+    # --- Classes, Subjects, Sections CRUD ---
+
+    def create_class(self, school, name, display_order=0):
+        return AcademicClass.objects.create(school=school, name=name, display_order=display_order)
+
+    def update_class(self, academic_class, name=None, display_order=None):
+        if name is not None:
+            academic_class.name = name
+        if display_order is not None:
+            academic_class.display_order = display_order
+        academic_class.save(update_fields=['name', 'display_order', 'updated_at'])
+        return academic_class
+
+    def delete_class(self, academic_class):
+        academic_class.delete()
+
+    def get_admin_subject_by_id(self, subject_id, school_id):
+        try:
+            return Subject.objects.get(id=subject_id, school_id=school_id)
+        except Subject.DoesNotExist:
+            return None
+
+    def create_subject(self, school, name, code='', is_active=True):
+        return Subject.objects.create(school=school, name=name, code=code, is_active=is_active)
+
+    def update_subject(self, subject, name=None, code=None, is_active=None):
+        update_fields = ['updated_at']
+        if name is not None:
+            subject.name = name
+            update_fields.append('name')
+        if code is not None:
+            subject.code = code
+            update_fields.append('code')
+        if is_active is not None:
+            subject.is_active = is_active
+            update_fields.append('is_active')
+        subject.save(update_fields=update_fields)
+        return subject
+
+    def delete_subject(self, subject):
+        subject.delete()
+
+    def create_section(self, school, academic_class, name, class_teacher=None, parent_query_enabled=True):
+        return Section.objects.create(
+            school=school, academic_class=academic_class, name=name,
+            class_teacher=class_teacher, parent_query_enabled=parent_query_enabled
+        )
+
+    def update_section(self, section, name=None, class_teacher=None, parent_query_enabled=None, clear_class_teacher=False):
+        update_fields = ['updated_at']
+        if name is not None:
+            section.name = name
+            update_fields.append('name')
+        if class_teacher is not None:
+            section.class_teacher = class_teacher
+            update_fields.append('class_teacher_id')
+        elif clear_class_teacher:
+            section.class_teacher = None
+            update_fields.append('class_teacher_id')
+            
+        if parent_query_enabled is not None:
+            section.parent_query_enabled = parent_query_enabled
+            update_fields.append('parent_query_enabled')
+        section.save(update_fields=update_fields)
+        return section
+
+    def delete_section(self, section):
+        section.delete()

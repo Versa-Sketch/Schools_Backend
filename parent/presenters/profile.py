@@ -12,6 +12,7 @@ class ParentProfilePresenter:
             'students': [
                 {
                     'id': s.id,
+                    'user_id': s.user_id,
                     'name': s.name,
                     'roll_number': s.roll_number,
                     'academic_class': {'id': s.academic_class_id, 'name': s.academic_class.name},
@@ -26,6 +27,7 @@ class ParentProfilePresenter:
         results = [
             {
                 'id': s.id,
+                'user_id': s.user_id,
                 'name': s.name,
                 'roll_number': s.roll_number,
                 'admission_number': s.admission_number,

@@ -24,3 +24,9 @@ class SectionsPresenter:
 
     def section_detail_success(self, section):
         return Response(_format_section(section), status=200)
+
+    def section_created(self, section):
+        return Response(_format_section(section), status=201)
+
+    def section_deleted(self):
+        return Response({'success': True, 'message': 'Section deleted successfully.'}, status=200)

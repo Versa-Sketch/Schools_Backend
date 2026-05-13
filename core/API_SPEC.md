@@ -345,6 +345,8 @@ Query params:
 - `event_type`: optional, one of `HOLIDAY`, `EXAM`, `EVENT`.
 - `start_date`: optional ISO date.
 - `end_date`: optional ISO date.
+- `month`: optional, 1-12 integer. (Overrides `start_date`/`end_date` if provided with `year`).
+- `year`: optional integer, e.g., 2026.
 
 Response:
 

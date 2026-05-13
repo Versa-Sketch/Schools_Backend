@@ -325,7 +325,97 @@ Errors:
 
 - `404 NOT_FOUND` if `event_id` does not belong to the principal's school.
 
-## Section Query Management
+## Classes, Subjects, and Sections Management
+
+### `POST /api/v1/principal/classes/`
+Create a new class.
+
+Request:
+```json
+{
+  "name": "Class 10",
+  "display_order": 10
+}
+```
+Response (`201 Created`):
+```json
+{
+  "id": "22222222-2222-2222-2222-222222222222",
+  "name": "Class 10",
+  "display_order": 10
+}
+```
+
+### `PATCH /api/v1/principal/classes/{class_id}/`
+Update a class. Only provided fields are updated.
+
+Request:
+```json
+{
+  "name": "Class X"
+}
+```
+Response (`200 OK`): Updated class object.
+
+### `DELETE /api/v1/principal/classes/{class_id}/`
+Deletes a class.
+Returns `ValidationException` (400) if the class contains sections or students.
+
+Response (`200 OK`):
+```json
+{
+  "success": true,
+  "message": "Class deleted successfully."
+}
+```
+
+---
+
+### `POST /api/v1/principal/subjects/`
+Create a new subject.
+
+Request:
+```json
+{
+  "name": "Physics",
+  "code": "PHY",
+  "is_active": true
+}
+```
+Response (`201 Created`):
+```json
+{
+  "id": "44444444-4444-4444-4444-444444444444",
+  "name": "Physics",
+  "code": "PHY",
+  "is_active": true
+}
+```
+
+### `PATCH /api/v1/principal/subjects/{subject_id}/`
+Update a subject.
+
+Request:
+```json
+{
+  "is_active": false
+}
+```
+Response (`200 OK`): Updated subject object.
+
+### `DELETE /api/v1/principal/subjects/{subject_id}/`
+Deletes a subject.
+Returns `ValidationException` (400) if the subject is in use.
+
+Response (`200 OK`):
+```json
+{
+  "success": true,
+  "message": "Subject deleted successfully."
+}
+```
+
+---
 
 ### `GET /api/v1/principal/sections/`
 
@@ -358,24 +448,48 @@ Response:
 }
 ```
 
+### `POST /api/v1/principal/sections/`
+Create a new section within a class.
+
+Request:
+```json
+{
+  "class_id": "22222222-2222-2222-2222-222222222222",
+  "name": "C",
+  "class_teacher_id": "55555555-5555-5555-5555-555555555555",
+  "parent_query_enabled": true
+}
+```
+Response (`201 Created`): Same shape as a single item from the list above.
+
 ### `PATCH /api/v1/principal/sections/{section_id}/`
 
-Enables or disables parent queries for a specific section. `{section_id}` is a UUID.
+Updates a section's details. `class_teacher_id` can be set to `null` to remove the class teacher.
 
 Request:
 
 ```json
 {
+  "name": "D",
+  "class_teacher_id": null,
   "parent_query_enabled": false
 }
 ```
 
-Response: updated section object (same shape as a single item from the list above).
+Response (`200 OK`): updated section object.
 
-Validation:
+### `DELETE /api/v1/principal/sections/{section_id}/`
 
-- `section_id` must belong to the principal's school.
-- `parent_query_enabled` is required and must be a boolean.
+Deletes a section.
+Returns `ValidationException` (400) if the section contains students.
+
+Response (`200 OK`):
+```json
+{
+  "success": true,
+  "message": "Section deleted successfully."
+}
+```
 
 Rules:
 
