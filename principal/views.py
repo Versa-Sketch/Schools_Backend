@@ -25,6 +25,14 @@ from .interactors import (
     UpdateSectionInteractor,
     DailyAttendanceSummaryInteractor,
     ClassAttendanceDetailInteractor,
+    CreateSectionInteractor,
+    DeleteSectionInteractor,
+    CreateClassInteractor,
+    UpdateClassInteractor,
+    DeleteClassInteractor,
+    CreateSubjectInteractor,
+    UpdateSubjectInteractor,
+    DeleteSubjectInteractor,
 )
 from .presenters.configuration import ConfigurationPresenter
 from .presenters.teachers import TeachersPresenter
@@ -33,6 +41,8 @@ from .presenters.announcements import AnnouncementPresenter
 from .presenters.calendar import CalendarPresenter
 from .presenters.sections import SectionsPresenter
 from .presenters.attendance import AttendanceSummaryPresenter
+from .presenters.classes import ClassesPresenter
+from .presenters.subjects import SubjectsPresenter
 
 
 @api_view(['GET', 'PATCH'])
@@ -140,21 +150,70 @@ def calendar_event_detail_view(request, event_id):
     ).update_event(user=request.user, event_id=event_id, data=request.data)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([JSONParser])
 def section_list_view(request):
+    if request.method == 'POST':
+        return CreateSectionInteractor(
+            storage=PrincipalDB(), presenter=SectionsPresenter(),
+        ).create_section(user=request.user, data=request.data)
     return ListSectionsInteractor(
         storage=PrincipalDB(), presenter=SectionsPresenter(),
     ).list_sections(user=request.user, class_id=request.query_params.get('class_id'))
 
 
-@api_view(['PATCH'])
+@api_view(['PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 @parser_classes([JSONParser])
 def section_detail_view(request, section_id):
+    if request.method == 'DELETE':
+        return DeleteSectionInteractor(
+            storage=PrincipalDB(), presenter=SectionsPresenter(),
+        ).delete_section(user=request.user, section_id=section_id)
     return UpdateSectionInteractor(
         storage=PrincipalDB(), presenter=SectionsPresenter(),
     ).update_section(user=request.user, section_id=section_id, data=request.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([JSONParser])
+def class_create_view(request):
+    return CreateClassInteractor(
+        storage=PrincipalDB(), presenter=ClassesPresenter(),
+    ).create_class(user=request.user, data=request.data)
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([JSONParser])
+def class_detail_view(request, class_id):
+    if request.method == 'DELETE':
+        return DeleteClassInteractor(
+            storage=PrincipalDB(), presenter=ClassesPresenter(),
+        ).delete_class(user=request.user, class_id=class_id)
+    return UpdateClassInteractor(
+        storage=PrincipalDB(), presenter=ClassesPresenter(),
+    ).update_class(user=request.user, class_id=class_id, data=request.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([JSONParser])
+def subject_create_view(request):
+    return CreateSubjectInteractor(
+        storage=PrincipalDB(), presenter=SubjectsPresenter(),
+    ).create_subject(user=request.user, data=request.data)
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([JSONParser])
+def subject_detail_view(request, subject_id):
+    if request.method == 'DELETE':
+        return DeleteSubjectInteractor(
+            storage=PrincipalDB(), presenter=SubjectsPresenter(),
+        ).delete_subject(user=request.user, subject_id=subject_id)
+    return UpdateSubjectInteractor(
+        storage=PrincipalDB(), presenter=SubjectsPresenter(),
+    ).update_subject(user=request.user, subject_id=subject_id, data=request.data)
 
 
 @api_view(['GET'])

@@ -4,5 +4,7 @@ from .bulk_upload import BulkUploadStudentsInteractor, GetBulkUploadStatusIntera
 from .teacher_bulk_upload import BulkUploadTeachersInteractor, GetTeacherBulkUploadStatusInteractor
 from .announcements import CreateAnnouncementInteractor
 from .calendar import CreateCalendarEventInteractor, UpdateCalendarEventInteractor, DeleteCalendarEventInteractor
-from .sections import ListSectionsInteractor, UpdateSectionInteractor
+from .sections import ListSectionsInteractor, UpdateSectionInteractor, CreateSectionInteractor, DeleteSectionInteractor
+from .classes import CreateClassInteractor, UpdateClassInteractor, DeleteClassInteractor
+from .subjects import CreateSubjectInteractor, UpdateSubjectInteractor, DeleteSubjectInteractor
 from .attendance import DailyAttendanceSummaryInteractor, ClassAttendanceDetailInteractor
