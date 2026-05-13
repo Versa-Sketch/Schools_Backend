@@ -242,6 +242,11 @@ class PrincipalDB:
         except StudentBulkUploadBatch.DoesNotExist:
             return None
 
+    def get_student_upload_rows(self, batch_id):
+        return list(
+            StudentBulkUploadRow.objects.filter(batch_id=batch_id).order_by('row_number')
+        )
+
     def create_teacher_bulk_upload_batch(self, school, principal_profile, csv_file):
         return TeacherBulkUploadBatch.objects.create(
             school=school, uploaded_by=principal_profile.user, csv_file=csv_file,
@@ -328,6 +333,11 @@ class PrincipalDB:
             return TeacherBulkUploadBatch.objects.get(id=batch_id, school_id=school_id)
         except TeacherBulkUploadBatch.DoesNotExist:
             return None
+
+    def get_teacher_upload_rows(self, batch_id):
+        return list(
+            TeacherBulkUploadRow.objects.filter(batch_id=batch_id).order_by('row_number')
+        )
 
     # --- Announcements ---
 

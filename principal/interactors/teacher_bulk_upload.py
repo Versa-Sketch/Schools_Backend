@@ -38,4 +38,5 @@ class GetTeacherBulkUploadStatusInteractor:
         batch = self.storage.get_teacher_bulk_upload_batch(batch_id=batch_id, school_id=profile.school_id)
         if batch is None:
             raise NotFoundException(constants.BATCH_NOT_FOUND)
-        return self.presenter.bulk_upload_success(batch=batch)
+        rows = self.storage.get_teacher_upload_rows(batch_id=batch_id)
+        return self.presenter.bulk_upload_success(batch=batch, rows=rows)
