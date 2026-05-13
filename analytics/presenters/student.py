@@ -91,6 +91,53 @@ class StudentPresenter:
             ],
         }, status=200)
 
+    # ------------------------------------------------------------ All Exams
+
+    def student_all_exams_success(self, student, exams, all_results, all_risks):
+        exam_data_map = {
+            str(exam.id): {
+                'id': str(exam.id),
+                'exam_name': exam.exam_name,
+                'exam_date': str(exam.exam_date) if exam.exam_date else None,
+                'total_marks': 0,
+                'overall_risk': 'SAFE',
+                'subjects': [],
+            }
+            for exam in exams
+        }
+
+        for er in all_results:
+            eid = str(er.exam_id)
+            if eid not in exam_data_map:
+                continue
+
+            subj = er.subject
+            risk = all_risks.get((eid, str(subj.id)))
+            risk_label = risk.risk_label if risk else 'SAFE'
+
+            exam_data_map[eid]['total_marks'] += er.total_marks
+            exam_data_map[eid]['subjects'].append({
+                'subject_id': str(subj.id),
+                'subject_name': subj.subject_name,
+                'marks': er.total_marks,
+                'max_marks': subj.max_marks,
+                'risk_label': risk_label,
+            })
+
+            # Update overall risk
+            current_overall = exam_data_map[eid]['overall_risk']
+            if _RISK_PRIORITY.get(risk_label, 1) > _RISK_PRIORITY.get(current_overall, 1):
+                exam_data_map[eid]['overall_risk'] = risk_label
+
+        # Filter to only exams that have results (or return all, but we probably just want the mapped list)
+        exam_list = [exam_data_map[str(e.id)] for e in exams]
+
+        return Response({
+            'success': True,
+            'student': self._fmt_student(student),
+            'exams': exam_list,
+        }, status=200)
+
     # ------------------------------------------------------------ shared
 
     def _fmt_student(self, student):

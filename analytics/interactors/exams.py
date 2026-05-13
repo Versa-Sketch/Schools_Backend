@@ -36,18 +36,54 @@ class CreateExamInteractor:
         return self.presenter.create_exam_success(exam)
 
 
+class ListExamsInteractor:
+    def __init__(self, storage, presenter):
+        self.storage = storage
+        self.presenter = presenter
+
+    def list(self, user):
+        school_id = getattr(user, 'school_id', None)
+        if not school_id:
+            # Try to get school from profile
+            if user.role in ('ADMIN', 'PRINCIPAL'):
+                profile = self.storage.get_principal_profile(user)
+                school_id = profile.school_id if profile else None
+
+        if not school_id:
+            return self.presenter.permission_denied()
+
+        if user.role == 'STUDENT':
+            student_profile = self.storage.get_student_profile(user)
+            if not student_profile:
+                return self.presenter.permission_denied()
+            exams = self.storage.get_exams_for_student(student_profile.id, school_id)
+        elif user.role == 'TEACHER':
+            teacher_profile = self.storage.get_teacher_profile(user)
+            if not teacher_profile:
+                return self.presenter.permission_denied()
+            exams = self.storage.get_exams_for_teacher(teacher_profile, school_id)
+        elif user.role in ('PRINCIPAL', 'ADMIN'):
+            exams = self.storage.get_exams_for_school(school_id)
+        else:
+            return self.presenter.permission_denied()
+            
+        return self.presenter.exam_list_success(exams)
+
+
 class ExamOverviewInteractor:
     def __init__(self, storage, presenter):
         self.storage = storage
         self.presenter = presenter
 
     def overview(self, user, exam_id):
-        if user.role not in ('ADMIN', 'PRINCIPAL'):
-            raise PrincipalPermissionException()
-        profile = self.storage.get_principal_profile(user)
-        if profile is None:
-            raise NotFoundException('Principal profile not found.')
-        school_id = profile.school_id
+        school_id = getattr(user, 'school_id', None)
+        if not school_id:
+            if user.role in ('ADMIN', 'PRINCIPAL'):
+                profile = self.storage.get_principal_profile(user)
+                school_id = profile.school_id if profile else None
+
+        if not school_id:
+            return self.presenter.permission_denied()
 
         exam = self.storage.get_exam_by_id(exam_id, school_id)
         if exam is None:
@@ -57,13 +93,40 @@ class ExamOverviewInteractor:
                 f'Analytics not ready (status: {exam.analytics_status}).'
             )
 
-        top_students = self.storage.get_top_students(exam_id, n=5)
-        if exam.academic_class_id:
-            overview = self.storage.get_exam_overview(exam_id, school_id)
-            return self.presenter.class_overview_success(exam, overview, top_students)
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            top_students = self.storage.get_top_students(exam_id, n=5)
+            if exam.academic_class_id:
+                overview = self.storage.get_exam_overview(exam_id, school_id)
+                return self.presenter.class_overview_success(exam, overview, top_students, role_view='STAFF')
+            else:
+                subject_avgs = self.storage.get_section_overview(exam_id, str(exam.section_id))
+                return self.presenter.section_overview_success(exam, exam.section, subject_avgs, top_students, role_view='STAFF')
+
+        elif user.role == 'TEACHER':
+            teacher_profile = self.storage.get_teacher_profile(user)
+            if not teacher_profile:
+                raise NotFoundException('Teacher profile not found.')
+            assigned_sections = list(teacher_profile.assigned_sections.all())
+            
+            top_students = self.storage.get_top_students(exam_id, n=5)
+            if exam.academic_class_id:
+                overview = self.storage.get_exam_overview(exam_id, school_id)
+                return self.presenter.class_overview_success(exam, overview, top_students, role_view='STAFF', teacher_sections=assigned_sections)
+            else:
+                subject_avgs = self.storage.get_section_overview(exam_id, str(exam.section_id))
+                return self.presenter.section_overview_success(exam, exam.section, subject_avgs, top_students, role_view='STAFF')
+
+        elif user.role == 'STUDENT':
+            student_profile = self.storage.get_student_profile(user)
+            if not student_profile:
+                raise NotFoundException('Student profile not found.')
+            
+            student_results = self.storage.get_exam_results_for_student(exam_id, student_profile.id, school_id)
+            student_risks = self.storage.get_student_risks_by_student_id(exam_id, student_profile.id, school_id)
+            return self.presenter.student_overview_success(exam, student_results, student_risks)
+
         else:
-            subject_avgs = self.storage.get_section_overview(exam_id, str(exam.section_id))
-            return self.presenter.section_overview_success(exam, exam.section, subject_avgs, top_students)
+            return self.presenter.permission_denied()
 
 
 class ClassSubjectQuestionsInteractor:

@@ -14,6 +14,7 @@ from analytics.interactors.dashboard import DashboardInteractor
 from analytics.interactors.exams import (
     CreateExamInteractor,
     ExamOverviewInteractor,
+    ListExamsInteractor,
     ClassSubjectQuestionsInteractor,
     ClassQuestionStudentsInteractor,
     SectionDetailInteractor,
@@ -43,15 +44,18 @@ def template_download_view(request):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@permission_classes([IsAuthenticated])
 def exams_view(request):
     if request.method == 'POST':
+        if request.user.role not in ('PRINCIPAL', 'ADMIN'):
+            return Response({'success': False, 'details': 'Permission denied.'}, status=403)
         return CreateExamInteractor(
             storage=AnalyticsDB(), presenter=ExamPresenter(),
         ).create(user=request.user, data=request.data)
-    return DashboardInteractor(
-        storage=AnalyticsDB(), presenter=DashboardPresenter(),
-    ).list_exams(user=request.user)
+        
+    return ListExamsInteractor(
+        storage=AnalyticsDB(), presenter=ExamPresenter(),
+    ).list(user=request.user)
 
 
 @api_view(['POST'])
@@ -70,7 +74,7 @@ def upload_exam_view(request, exam_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@permission_classes([IsAuthenticated])
 def exam_overview_view(request, exam_id):
     return ExamOverviewInteractor(
         storage=AnalyticsDB(), presenter=ExamPresenter(),
@@ -207,6 +211,21 @@ def question_detail_view(request, section_id, subject_id, q_no):
 
 
 # ---------------------------------------------------------------- 7c Student Screens
+
+@api_view(['GET'])
+@permission_classes([
+    IsAuthenticated,
+    IsPrincipal | IsAdmin | IsTeacher | IsStudent | IsParent,
+])
+def student_all_exams_view(request, student_id):
+    return StudentInteractor(
+        storage=AnalyticsDB(),
+        presenter=StudentPresenter(),
+    ).get_student_all_exams(
+        user=request.user,
+        student_id=student_id,
+    )
+
 
 @api_view(['GET'])
 @permission_classes([

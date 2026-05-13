@@ -63,6 +63,19 @@ class StudentInteractor:
             question_results=question_results,
         )
 
+    # ---------------------------------------------------------------- All Exams
+
+    def get_student_all_exams(self, user, student_id):
+        school_id = self._get_school_id(user)
+        student = self._get_student(student_id, school_id)
+        self._check_student_access(user, student, school_id)
+
+        exams = self.storage.get_exams_for_student(student_id, school_id)
+        all_results = self.storage.get_all_exam_results_for_student(student_id, school_id)
+        all_risks = self.storage.get_all_student_risks_for_student(student_id, school_id)
+
+        return self.presenter.student_all_exams_success(student, exams, all_results, all_risks)
+
     # ---------------------------------------------------------------- helpers
 
     def _get_school_id(self, user):

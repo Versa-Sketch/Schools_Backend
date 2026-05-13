@@ -18,6 +18,7 @@
 | `GET /exams/<id>/sections/<sec>/` | ✅ | ✅ | ❌ | ❌ | ❌ |
 | `GET /exams/<id>/sections/<sec>/subjects/<s>/questions/` | ✅ | ✅ | ❌ | ❌ | ❌ |
 | `GET /exams/<id>/sections/<sec>/subjects/<s>/questions/<n>/students/` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /student/<id>/exams/` | ✅ | ✅ | ✅ own section | ✅ own only | ✅ own child |
 | `GET /student/<id>/` | ✅ | ✅ | ✅ own section | ✅ own only | ✅ own child |
 | `GET /student/<id>/subject/<s>/` | ✅ | ✅ | ✅ own section | ✅ own only | ✅ own child |
 | `GET /template/` | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -44,7 +45,10 @@
 
 ### `GET /api/v1/analytics/exams/` — List Exams
 
-Returns all exams for the school.
+Returns exams dynamically filtered by the authenticated user's role:
+- **STUDENT:** Exams they have participated in.
+- **TEACHER:** Exams belonging to classes/sections they teach.
+- **PRINCIPAL/ADMIN:** All exams for the school.
 
 Response `200`:
 ```json
@@ -55,7 +59,8 @@ Response `200`:
       "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "exam_name": "Unit Test 1",
       "exam_date": "2026-04-15",
-      "analytics_status": "DONE"
+      "analytics_status": "DONE",
+      "type": "CLASS"
     }
   ]
 }
@@ -110,13 +115,13 @@ Exam must be in `CREATED` status.
 
 Response `202`: same as legacy upload response.
 
-### `GET /api/v1/analytics/exams/{exam_id}/overview/` — Exam Overview
+### `GET /api/v1/analytics/exams/{exam_id}/overview/` — Exam Overview (Unified)
 
-Response shape depends on whether the exam was created with `class_id` or `section_id`.
+This endpoint returns different data based on the authenticated user's role:
 
-#### Class exam (`type: "CLASS"`) — created with `class_id`
-
-All sections of the class are included. Response shows class-wide averages and a section breakdown.
+#### 1. Teacher & Principal View (`role_view: "STAFF"`)
+- **Principals** receive details for all sections.
+- **Teachers** receive details for *only* the sections assigned to them.
 
 Response `200`:
 ```json
@@ -126,14 +131,12 @@ Response `200`:
     "exam_date": "2026-04-15", "analytics_status": "DONE",
     "type": "CLASS"
   },
+  "role_view": "STAFF",
   "class_avgs": [
-    { "subject_id": "...", "subject_name": "MATHS",     "avg": 62.5, "max_marks": 80 },
-    { "subject_id": "...", "subject_name": "PHYSICS",   "avg": 28.0, "max_marks": 40 },
-    { "subject_id": "...", "subject_name": "CHEMISTRY", "avg": 30.1, "max_marks": 40 }
+    { "subject_id": "...", "subject_name": "MATHS",     "avg": 62.5, "max_marks": 80 }
   ],
   "sections": [
-    { "section_id": "...", "section_name": "A", "avg": 64.2 },
-    { "section_id": "...", "section_name": "B", "avg": 60.8 }
+    { "section_id": "...", "section_name": "A", "avg": 64.2 }
   ],
   "top_students": [
     { "student_id": "...", "name": "Aarav Mehta", "student_ref_id": "S001", "total_marks": 148, "rank": 1 }
@@ -141,9 +144,8 @@ Response `200`:
 }
 ```
 
-#### Section exam (`type: "SECTION"`) — created with `section_id`
-
-Only one section is included. Response shows that section's subject averages directly (no section breakdown step needed).
+#### 2. Student View (`role_view: "STUDENT"`)
+Students receive their personalized results and risk breakdown for the exam instead of class averages.
 
 Response `200`:
 ```json
@@ -151,17 +153,25 @@ Response `200`:
   "exam": {
     "id": "...", "exam_name": "Unit Test 1",
     "exam_date": "2026-04-15", "analytics_status": "DONE",
-    "type": "SECTION"
+    "type": "CLASS"
   },
-  "section": { "id": "...", "name": "A" },
-  "subject_avgs": [
-    { "subject_id": "...", "subject_name": "CHEMISTRY", "avg": 30.1, "max_marks": 40 },
-    { "subject_id": "...", "subject_name": "MATHS",     "avg": 62.5, "max_marks": 80 },
-    { "subject_id": "...", "subject_name": "PHYSICS",   "avg": 28.0, "max_marks": 40 }
-  ],
-  "top_students": [
-    { "student_id": "...", "name": "Aarav Mehta", "student_ref_id": "S001", "total_marks": 148, "rank": 1 }
-  ]
+  "role_view": "STUDENT",
+  "student_results": {
+    "total_marks": 142,
+    "overall_risk": "WATCH",
+    "subjects": [
+      {
+        "subject_id": "...",
+        "subject_name": "MATHS",
+        "total_marks": 42,
+        "max_marks": 80,
+        "correct": 14,
+        "wrong": 4,
+        "unattempted": 2,
+        "risk_label": "WATCH"
+      }
+    ]
+  }
 }
 ```
 
@@ -589,7 +599,63 @@ GET /api/v1/analytics/section/<uuid:section_id>/subject/<uuid:subject_id>/questi
 
 ---
 
-## 9. Student Summary — Screen 6
+## 9. Student All Exams (Timeline)
+
+```
+GET /api/v1/analytics/student/<uuid:student_id>/exams/
+```
+
+**Auth:** PRINCIPAL, ADMIN, TEACHER (own section), STUDENT (own), PARENT (own child).
+
+**Path params:**
+
+| Param | Type | Description |
+|---|---|---|
+| `student_id` | UUID | `AnalyticsStudent.id` |
+
+**Response `200 OK`:**
+```json
+{
+  "success": true,
+  "student": {
+    "student_id": "...",
+    "student_ref_id": "2251863",
+    "name": "MAHIMA REDDY.G",
+    "class_name": "Class 11",
+    "section_name": "A"
+  },
+  "exams": [
+    {
+      "id": "...",
+      "exam_name": "Unit Test 2",
+      "exam_date": "2026-05-10",
+      "total_marks": 150,
+      "overall_risk": "SAFE",
+      "subjects": [
+         { "subject_id": "...", "subject_name": "MATHS", "marks": 70, "max_marks": 80, "risk_label": "SAFE" },
+         { "subject_id": "...", "subject_name": "PHYSICS", "marks": 35, "max_marks": 40, "risk_label": "SAFE" }
+      ]
+    },
+    {
+      "id": "...",
+      "exam_name": "Unit Test 1",
+      "exam_date": "2026-04-15",
+      "total_marks": 85,
+      "overall_risk": "ALERT",
+      "subjects": [
+         { "subject_id": "...", "subject_name": "MATHS", "marks": 40, "max_marks": 80, "risk_label": "WATCH" },
+         { "subject_id": "...", "subject_name": "PHYSICS", "marks": 15, "max_marks": 40, "risk_label": "ALERT" }
+      ]
+    }
+  ]
+}
+```
+
+> Returns a combined list of all exams the student participated in, pre-populated with subject-wise results. `overall_risk` is automatically determined based on the highest risk level across all subjects for each exam.
+
+---
+
+## 10. Student Summary — Screen 6
 
 ```
 GET /api/v1/analytics/student/<uuid:student_id>/?exam_id=<uuid>

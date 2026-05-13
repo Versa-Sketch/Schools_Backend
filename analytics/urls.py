@@ -27,6 +27,7 @@ urlpatterns = [
 
 
     # Student screens (principal/teacher/student/parent access)
+    path('student/<uuid:student_id>/exams/', views.student_all_exams_view, name='analytics-student-all-exams'),
     path('student/<uuid:student_id>/', views.student_summary_view, name='analytics-student-summary'),
     path('student/<uuid:student_id>/subject/<uuid:subject_id>/',
          views.student_subject_view, name='analytics-student-subject'),

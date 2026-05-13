@@ -35,6 +35,12 @@ class AnalyticsDB:
             return getattr(user, 'adminprofile', None)
         return getattr(user, 'principalprofile', None)
 
+    def get_teacher_profile(self, user):
+        return getattr(user, 'teacherprofile', None)
+
+    def get_student_profile(self, user):
+        return self.get_analytics_student_by_user(user)
+
     # --------------------------------------------------------- upload pipeline
 
     def create_exam(self, school, exam_name, exam_date, uploaded_by):
@@ -575,6 +581,20 @@ class AnalyticsDB:
             .order_by('-exam_date', '-created_at')
         )
 
+    def get_exams_for_teacher(self, teacher_profile, school_id):
+        assigned_sections = list(teacher_profile.assigned_sections.all())
+        class_ids = [s.academic_class_id for s in assigned_sections]
+        return list(
+            AnalyticsExam.objects
+            .filter(
+                Q(section__in=assigned_sections) | Q(academic_class_id__in=class_ids),
+                school_id=school_id
+            )
+            .prefetch_related('subjects')
+            .distinct()
+            .order_by('-exam_date', '-created_at')
+        )
+
     def get_subjects_for_student_exam(self, exam_id, student_id):
         return list(
             ExamResult.objects
@@ -709,6 +729,15 @@ class AnalyticsDB:
             .order_by('subject__subject_name')
         )
 
+    def get_all_exam_results_for_student(self, student_id, school_id):
+        """All ExamResult rows for one student across ALL exams."""
+        return list(
+            ExamResult.objects
+            .filter(student_id=student_id, exam__school_id=school_id)
+            .select_related('subject', 'exam')
+            .order_by('-exam__exam_date')
+        )
+
     def get_student_risks_by_student_id(self, exam_id, student_id, school_id):
         """All StudentRisk rows for one student (all subjects) for Screen 6."""
         risks = StudentRisk.objects.filter(
@@ -717,6 +746,13 @@ class AnalyticsDB:
             exam__school_id=school_id,
         ).select_related('subject')
         return {r.subject.subject_name: r for r in risks}
+
+    def get_all_student_risks_for_student(self, student_id, school_id):
+        """All StudentRisk rows for one student across ALL exams."""
+        risks = StudentRisk.objects.filter(
+            student_id=student_id, exam__school_id=school_id
+        ).select_related('subject', 'exam')
+        return {(str(r.exam_id), str(r.subject_id)): r for r in risks}
 
     # ------------------------------------------------------ Screen 7 queries
 
