@@ -497,6 +497,63 @@ class StudentBulkUploadRow(TimeStampedModel):
         return f'Row {self.row_number} - {self.status}'
 
 
+class TeacherBulkUploadBatch(TimeStampedModel):
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+    )
+    csv_file = models.FileField(upload_to='teacher_uploads/')
+    status = models.CharField(
+        max_length=10,
+        choices=UPLOAD_BATCH_STATUS_CHOICES,
+        default=UPLOAD_BATCH_STATUS_PENDING,
+    )
+    total_rows = models.PositiveIntegerField(default=0)
+    success_count = models.PositiveIntegerField(default=0)
+    error_count = models.PositiveIntegerField(default=0)
+    error_report = models.FileField(upload_to='teacher_upload_errors/', blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Teacher upload for {self.school} ({self.status})'
+
+
+class TeacherBulkUploadRow(TimeStampedModel):
+    batch = models.ForeignKey(
+        TeacherBulkUploadBatch,
+        on_delete=models.CASCADE,
+    )
+    row_number = models.PositiveIntegerField()
+    raw_data = models.JSONField(default=dict)
+    status = models.CharField(
+        max_length=7,
+        choices=UPLOAD_ROW_STATUS_CHOICES,
+        default=UPLOAD_ROW_STATUS_PENDING,
+    )
+    error_message = models.TextField(blank=True)
+    created_teacher = models.ForeignKey(
+        'teacher.TeacherProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ['row_number']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['batch', 'row_number'],
+                name='unique_teacher_upload_row_number_per_batch',
+            ),
+        ]
+
+    def __str__(self):
+        return f'Row {self.row_number} - {self.status}'
+
+
 class AcademicCalendarEvent(TimeStampedModel):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)

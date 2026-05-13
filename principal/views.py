@@ -15,6 +15,8 @@ from .interactors import (
     UpdateTeacherInteractor,
     BulkUploadStudentsInteractor,
     GetBulkUploadStatusInteractor,
+    BulkUploadTeachersInteractor,
+    GetTeacherBulkUploadStatusInteractor,
     CreateAnnouncementInteractor,
     CreateCalendarEventInteractor,
     UpdateCalendarEventInteractor,
@@ -86,6 +88,23 @@ def bulk_upload_view(request):
 @permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 def bulk_upload_status_view(request, batch_id):
     return GetBulkUploadStatusInteractor(
+        storage=PrincipalDB(), presenter=BulkUploadPresenter(),
+    ).get_status(user=request.user, batch_id=batch_id)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([MultiPartParser, FormParser])
+def teacher_bulk_upload_view(request):
+    return BulkUploadTeachersInteractor(
+        storage=PrincipalDB(), presenter=BulkUploadPresenter(),
+    ).bulk_upload(user=request.user, csv_file=request.FILES.get('csv_file'))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def teacher_bulk_upload_status_view(request, batch_id):
+    return GetTeacherBulkUploadStatusInteractor(
         storage=PrincipalDB(), presenter=BulkUploadPresenter(),
     ).get_status(user=request.user, batch_id=batch_id)
 

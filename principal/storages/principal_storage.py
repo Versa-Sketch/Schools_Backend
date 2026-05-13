@@ -17,6 +17,8 @@ from core.models import (
     Subject,
     StudentBulkUploadBatch,
     StudentBulkUploadRow,
+    TeacherBulkUploadBatch,
+    TeacherBulkUploadRow,
     User,
     ATTENDANCE_STATUS_PRESENT,
     UPLOAD_BATCH_STATUS_PROCESSING,
@@ -238,6 +240,93 @@ class PrincipalDB:
         try:
             return StudentBulkUploadBatch.objects.get(id=batch_id, school_id=school_id)
         except StudentBulkUploadBatch.DoesNotExist:
+            return None
+
+    def create_teacher_bulk_upload_batch(self, school, principal_profile, csv_file):
+        return TeacherBulkUploadBatch.objects.create(
+            school=school, uploaded_by=principal_profile.user, csv_file=csv_file,
+        )
+
+    def process_teacher_bulk_upload(self, batch, school):
+        batch.status = UPLOAD_BATCH_STATUS_PROCESSING
+        batch.save(update_fields=['status', 'updated_at'])
+
+        csv_file = batch.csv_file
+        csv_file.open('r')
+        raw = csv_file.read()
+        csv_file.close()
+        if isinstance(raw, bytes):
+            raw = raw.decode('utf-8-sig')
+
+        reader = csv.DictReader(io.StringIO(raw))
+        rows = list(reader)
+        batch.total_rows = len(rows)
+        batch.save(update_fields=['total_rows', 'updated_at'])
+
+        success_count = 0
+        error_count = 0
+        for i, row in enumerate(rows, start=1):
+            row_obj = TeacherBulkUploadRow.objects.create(batch=batch, row_number=i, raw_data=dict(row))
+            try:
+                with transaction.atomic():
+                    self._process_teacher_upload_row(row, school, row_obj, i)
+                row_obj.refresh_from_db()
+                success_count += 1
+            except Exception as e:
+                row_obj.status = UPLOAD_ROW_STATUS_FAILED
+                row_obj.error_message = str(e)
+                row_obj.save()
+                error_count += 1
+
+        batch.success_count = success_count
+        batch.error_count = error_count
+        batch.status = UPLOAD_BATCH_STATUS_COMPLETED
+        batch.save(update_fields=['success_count', 'error_count', 'status', 'updated_at'])
+        return batch
+
+    def _process_teacher_upload_row(self, row, school, row_obj, index):
+        name = row.get('name', '').strip()
+        phone_number = row.get('phone_number', '').strip()
+        username = row.get('username', '').strip()
+        password = row.get('password', '').strip()
+
+        if not all([name, phone_number, username, password]):
+            raise ValueError('Missing required fields.')
+
+        if User.objects.filter(username=username).exists():
+            raise ValueError('Username already exists.')
+
+        primary_subject = None
+        primary_subject_id = row.get('primary_subject_id', '').strip()
+        if primary_subject_id:
+            try:
+                primary_subject = Subject.objects.get(id=primary_subject_id, school=school)
+            except Subject.DoesNotExist:
+                raise ValueError('Primary subject not found.')
+
+        teacher_user = User.objects.create_user(
+            username=username, password=password, role='TEACHER', phone_number=phone_number
+        )
+        teacher_profile = TeacherProfile.objects.create(
+            user=teacher_user, school=school, name=name, primary_subject=primary_subject
+        )
+
+        assigned_section_ids_str = row.get('assigned_section_ids', '').strip()
+        if assigned_section_ids_str:
+            section_ids = [s.strip() for s in assigned_section_ids_str.split(',') if s.strip()]
+            sections = list(Section.objects.filter(id__in=section_ids, school=school))
+            if len(sections) != len(section_ids):
+                raise ValueError('One or more sections not found.')
+            teacher_profile.assigned_sections.set(sections)
+
+        row_obj.status = UPLOAD_ROW_STATUS_SUCCESS
+        row_obj.created_teacher = teacher_profile
+        row_obj.save()
+
+    def get_teacher_bulk_upload_batch(self, batch_id, school_id):
+        try:
+            return TeacherBulkUploadBatch.objects.get(id=batch_id, school_id=school_id)
+        except TeacherBulkUploadBatch.DoesNotExist:
             return None
 
     # --- Announcements ---

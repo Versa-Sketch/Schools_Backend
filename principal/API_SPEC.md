@@ -98,6 +98,50 @@ Validation:
 
 - `username` must be unique.
 - `primary_subject_id` must be a valid UUID belonging to the principal's school.
+
+### `POST /api/v1/principal/teachers/bulk-upload/`
+
+Request:
+
+- Method: `POST`
+- Content-Type: `multipart/form-data`
+- Body:
+  - `csv_file` (File, required)
+
+Expected CSV Columns:
+- `name` (required)
+- `phone_number` (required)
+- `username` (required)
+- `password` (required)
+- `primary_subject_id` (optional, UUID)
+- `assigned_section_ids` (optional, comma-separated UUIDs)
+
+Response (200 OK):
+
+```json
+{
+  "batch_id": "775e4c3a-9e12-4c56-8a50-...",
+  "status": "PROCESSING",
+  "total_rows": 50,
+  "success_count": 0,
+  "error_count": 0
+}
+```
+
+### `GET /api/v1/principal/teachers/bulk-upload/{batch_id}/`
+
+Response (200 OK):
+
+```json
+{
+  "batch_id": "775e4c3a-9e12-4c56-8a50-...",
+  "status": "COMPLETED",
+  "total_rows": 50,
+  "success_count": 48,
+  "error_count": 2,
+  "error_report_url": "https://s3.amazonaws.com/..."
+}
+```
 - All `assigned_section_ids` must be valid UUIDs belonging to the principal's school.
 
 ### `GET /api/v1/principal/teachers/`
