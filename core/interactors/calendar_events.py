@@ -1,4 +1,6 @@
-from core.exceptions import NotFoundException
+import calendar
+from datetime import date
+from core.exceptions import NotFoundException, ValidationException
 
 
 class CalendarEventListInteractor:
@@ -6,7 +8,19 @@ class CalendarEventListInteractor:
         self.storage = storage
         self.presenter = presenter
 
-    def get_calendar_events(self, user, event_type=None, start_date=None, end_date=None):
+    def get_calendar_events(self, user, event_type=None, start_date=None, end_date=None, month=None, year=None):
+        if month and year:
+            try:
+                m = int(month)
+                y = int(year)
+                if not (1 <= m <= 12):
+                    raise ValueError
+                _, last_day = calendar.monthrange(y, m)
+                start_date = date(y, m, 1)
+                end_date = date(y, m, last_day)
+            except (ValueError, TypeError):
+                raise ValidationException('Invalid month or year provided.')
+
         profile = self.storage.get_user_profile(user)
         if profile is None:
             raise NotFoundException('No school associated with this user.')

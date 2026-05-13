@@ -118,6 +118,8 @@ def calendar_event_list_view(request):
     event_type = request.query_params.get('event_type')
     start_date = request.query_params.get('start_date')
     end_date = request.query_params.get('end_date')
+    month = request.query_params.get('month')
+    year = request.query_params.get('year')
     return CalendarEventListInteractor(
         storage=CoreDB(),
         presenter=CalendarEventPresenter(),
@@ -126,6 +128,8 @@ def calendar_event_list_view(request):
         event_type=event_type,
         start_date=start_date,
         end_date=end_date,
+        month=month,
+        year=year,
     )
 
 
