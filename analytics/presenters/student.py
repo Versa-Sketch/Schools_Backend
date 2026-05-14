@@ -12,7 +12,9 @@ class StudentPresenter:
 
     # ------------------------------------------------------------ Screen 6
 
-    def student_summary_success(self, student, exam, exams, exam_results, risk_map):
+    def student_summary_success(
+        self, student, exam, exams, exam_results, risk_map, rank_details=None
+    ):
         """
         risk_map: dict keyed by subject_name → StudentRisk instance
         exam_results: list of ExamResult (one per subject)
@@ -60,6 +62,7 @@ class StudentPresenter:
             'success':      True,
             'student':      self._fmt_student(student),
             'exam':         self._fmt_exam(exam),
+            **self._fmt_rank_details(rank_details),
             'subjects':     subjects,
             'overall_risk': overall_risk,
         }, status=200)
@@ -97,13 +100,15 @@ class StudentPresenter:
 
     # ------------------------------------------------------------ All Exams
 
-    def student_all_exams_success(self, student, exams, all_results, all_risks):
+    def student_all_exams_success(
+        self, student, exams, all_results, all_risks, rank_details_map=None
+    ):
         exam_data_map = {
             str(exam.id): {
                 'id': str(exam.id),
                 'exam_name': exam.exam_name,
                 'exam_date': str(exam.exam_date) if exam.exam_date else None,
-                'total_marks': 0,
+                **self._fmt_rank_details((rank_details_map or {}).get(str(exam.id))),
                 'overall_risk': 'SAFE',
                 'subjects': [],
             }
@@ -119,7 +124,6 @@ class StudentPresenter:
             risk = all_risks.get((eid, str(subj.id)))
             risk_label = risk.risk_label if risk else 'SAFE'
 
-            exam_data_map[eid]['total_marks'] += er.total_marks
             exam_data_map[eid]['subjects'].append({
                 'subject_id': str(subj.id),
                 'subject_name': subj.subject_name,
@@ -158,6 +162,22 @@ class StudentPresenter:
             'id':        str(exam.id),
             'exam_name': exam.exam_name,
             'exam_date': str(exam.exam_date) if exam.exam_date else None,
+        }
+
+    def _fmt_rank_details(self, details):
+        details = details or {}
+        exam_total_marks = details.get('exam_total_marks', 0)
+        exam_max_marks = details.get('exam_max_marks', 0)
+        exam_percentage = details.get('exam_percentage', 0)
+        return {
+            'total_marks': exam_total_marks,
+            'max_marks': exam_max_marks,
+            'percentage': exam_percentage,
+            'exam_total_marks': exam_total_marks,
+            'exam_max_marks': exam_max_marks,
+            'exam_percentage': exam_percentage,
+            'class_rank': details.get('class_rank'),
+            'section_rank': details.get('section_rank'),
         }
 
     def _fmt_exam_summary(self, exam):

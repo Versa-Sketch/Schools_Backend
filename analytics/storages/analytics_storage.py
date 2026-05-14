@@ -821,6 +821,87 @@ class AnalyticsDB:
         ).select_related('subject')
         return {r.subject.subject_name: r for r in risks}
 
+    def get_student_exam_rank_details(self, exam_id, student, school_id):
+        return self._build_student_exam_rank_details(exam_id, student, school_id)
+
+    def get_student_exam_rank_details_map(self, exam_ids, student, school_id):
+        return {
+            str(exam_id): self._build_student_exam_rank_details(exam_id, student, school_id)
+            for exam_id in exam_ids
+        }
+
+    def _build_student_exam_rank_details(self, exam_id, student, school_id):
+        student_total = (
+            ExamResult.objects
+            .filter(exam_id=exam_id, student_id=student.id, exam__school_id=school_id)
+            .aggregate(total=Sum('total_marks'))
+            .get('total') or 0
+        )
+        exam_max_marks = (
+            ExamSubject.objects
+            .filter(exam_id=exam_id, exam__school_id=school_id)
+            .aggregate(total=Sum('max_marks'))
+            .get('total') or 0
+        )
+
+        return {
+            'exam_total_marks': student_total,
+            'exam_max_marks': exam_max_marks,
+            'exam_percentage': round((student_total / exam_max_marks) * 100, 1) if exam_max_marks else 0,
+            'class_rank': (
+                self._get_total_rank(
+                    exam_id=exam_id,
+                    school_id=school_id,
+                    student_total=student_total,
+                    class_id=student.academic_class_id,
+                    class_name=student.class_name,
+                )
+                if student.academic_class_id or student.class_name else None
+            ),
+            'section_rank': (
+                self._get_total_rank(
+                    exam_id=exam_id,
+                    school_id=school_id,
+                    student_total=student_total,
+                    class_id=student.academic_class_id,
+                    class_name=student.class_name,
+                    section_id=student.section_id,
+                    section_name=student.section_name,
+                )
+                if student.section_id or student.section_name else None
+            ),
+        }
+
+    def _get_total_rank(
+        self,
+        exam_id,
+        school_id,
+        student_total,
+        class_id=None,
+        class_name=None,
+        section_id=None,
+        section_name=None,
+    ):
+        qs = ExamResult.objects.filter(exam_id=exam_id, exam__school_id=school_id)
+
+        if class_id:
+            qs = qs.filter(student__academic_class_id=class_id)
+        elif class_name:
+            qs = qs.filter(student__class_name__iexact=class_name)
+
+        if section_id:
+            qs = qs.filter(student__section_id=section_id)
+        elif section_name:
+            qs = qs.filter(student__section_name__iexact=section_name)
+
+        return (
+            qs.values('student_id')
+            .annotate(total=Sum('total_marks'))
+            .filter(total__gt=student_total)
+            .count()
+            + 1
+        )
+
     def get_all_student_risks_for_student(self, student_id, school_id):
         """All StudentRisk rows for one student across ALL exams."""
         risks = StudentRisk.objects.filter(

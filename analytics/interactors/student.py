@@ -20,6 +20,7 @@ class StudentInteractor:
 
         exam_results = self.storage.get_exam_results_for_student(exam_id, student.id, school_id)
         risk_map = self.storage.get_student_risks_by_student_id(exam_id, student.id, school_id)
+        rank_details = self.storage.get_student_exam_rank_details(exam_id, student, school_id)
 
         return self.presenter.student_summary_success(
             student=student,
@@ -27,6 +28,7 @@ class StudentInteractor:
             exams=exams,
             exam_results=exam_results,
             risk_map=risk_map,
+            rank_details=rank_details,
         )
 
     # ---------------------------------------------------------------- Screen 7
@@ -79,8 +81,13 @@ class StudentInteractor:
         exams = self.storage.get_exams_for_student(student.id, school_id)
         all_results = self.storage.get_all_exam_results_for_student(student.id, school_id)
         all_risks = self.storage.get_all_student_risks_for_student(student.id, school_id)
+        rank_details_map = self.storage.get_student_exam_rank_details_map(
+            [exam.id for exam in exams], student, school_id
+        )
 
-        return self.presenter.student_all_exams_success(student, exams, all_results, all_risks)
+        return self.presenter.student_all_exams_success(
+            student, exams, all_results, all_risks, rank_details_map
+        )
 
     # ---------------------------------------------------------------- helpers
 

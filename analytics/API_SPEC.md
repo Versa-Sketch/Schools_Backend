@@ -652,6 +652,13 @@ GET /api/v1/analytics/student/<uuid:student_id>/exams/
       "exam_name": "Unit Test 2",
       "exam_date": "2026-05-10",
       "total_marks": 150,
+      "max_marks": 160,
+      "percentage": 93.8,
+      "exam_total_marks": 150,
+      "exam_max_marks": 160,
+      "exam_percentage": 93.8,
+      "class_rank": 2,
+      "section_rank": 1,
       "overall_risk": "SAFE",
       "subjects": [
          { "subject_id": "...", "subject_name": "MATHS", "marks": 70, "max_marks": 80, "risk_label": "SAFE" },
@@ -712,6 +719,14 @@ GET /api/v1/analytics/student/<uuid:student_id>/?exam_id=<uuid>
   "exams": [
     { "id": "...", "exam_name": "...", "exam_date": "...", "analytics_status": "DONE" }
   ],
+  "total_marks": 90,
+  "max_marks": 160,
+  "percentage": 56.3,
+  "exam_total_marks": 90,
+  "exam_max_marks": 160,
+  "exam_percentage": 56.3,
+  "class_rank": 11,
+  "section_rank": 4,
   "subjects": [
     {
       "subject_id": "...",
