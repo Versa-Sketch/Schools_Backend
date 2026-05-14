@@ -775,6 +775,19 @@ class AnalyticsDB:
         except AnalyticsStudent.DoesNotExist:
             return None
 
+    def get_analytics_student_by_profile_id(self, student_profile_id, school_id):
+        """Lookup AnalyticsStudent via StudentProfile.id → linked_user."""
+        try:
+            profile = StudentProfile.objects.get(id=student_profile_id, school_id=school_id)
+        except StudentProfile.DoesNotExist:
+            return None
+        try:
+            return AnalyticsStudent.objects.select_related('section__academic_class').get(
+                linked_user_id=profile.user_id, school_id=school_id
+            )
+        except AnalyticsStudent.DoesNotExist:
+            return None
+
     # ------------------------------------------------------ Screen 6 queries
 
     def get_exam_results_for_student(self, exam_id, student_id, school_id):

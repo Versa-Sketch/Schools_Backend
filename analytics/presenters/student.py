@@ -7,6 +7,9 @@ _RISK_PRIORITY = {'ALERT': 3, 'WATCH': 2, 'SAFE': 1}
 
 class StudentPresenter:
 
+    def student_no_exams_success(self):
+        return Response({'success': True, 'exams': [], 'message': 'Student has not written any exam yet.'}, status=200)
+
     # ------------------------------------------------------------ Screen 6
 
     def student_summary_success(self, student, exam, exams, exam_results, risk_map):
