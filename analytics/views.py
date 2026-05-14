@@ -55,7 +55,7 @@ def exams_view(request):
         
     return ListExamsInteractor(
         storage=AnalyticsDB(), presenter=ExamPresenter(),
-    ).list(user=request.user)
+    ).list(user=request.user, class_id=request.query_params.get('class_id'))
 
 
 @api_view(['POST'])

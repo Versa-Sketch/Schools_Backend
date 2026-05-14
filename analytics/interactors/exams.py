@@ -41,7 +41,7 @@ class ListExamsInteractor:
         self.storage = storage
         self.presenter = presenter
 
-    def list(self, user):
+    def list(self, user, class_id=None):
         # Fetch profile once — used for school_id resolution and data query
         profile = None
         school_id = getattr(user, 'school_id', None)
@@ -58,6 +58,31 @@ class ListExamsInteractor:
 
         if not school_id:
             return self.presenter.permission_denied()
+
+        if class_id and user.role in ('ADMIN', 'PRINCIPAL', 'TEACHER'):
+            if user.role in ('ADMIN', 'PRINCIPAL'):
+                exams = self.storage.get_exams_for_class(class_id, school_id)
+            else:
+                teacher_profile = profile or self.storage.get_teacher_profile(user)
+                if not teacher_profile:
+                    return self.presenter.permission_denied()
+                all_exams = self.storage.get_exams_for_teacher(teacher_profile, school_id)
+                exams = [e for e in all_exams if str(e.academic_class_id) == str(class_id)]
+
+            exam_ids = [str(e.id) for e in exams]
+            if exam_ids:
+                section_analytics = self.storage.get_section_analytics_for_exam_list(
+                    exam_ids, class_id, school_id
+                )
+                student_counts = self.storage.get_student_counts_for_class_exams(
+                    exam_ids, class_id, school_id
+                )
+            else:
+                section_analytics, student_counts = {}, {}
+
+            return self.presenter.exam_list_with_sections_success(
+                exams, section_analytics, student_counts
+            )
 
         if user.role == 'STUDENT':
             student_profile = profile or self.storage.get_student_profile(user)

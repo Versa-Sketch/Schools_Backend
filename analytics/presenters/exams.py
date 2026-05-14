@@ -15,6 +15,47 @@ class ExamPresenter:
             ]
         }, status=200)
 
+    def exam_list_with_sections_success(self, exams, section_analytics_by_exam, student_counts):
+        result = []
+        for exam in exams:
+            exam_id_str = str(exam.id)
+            sa_rows = section_analytics_by_exam.get(exam_id_str, [])
+
+            sections_map = {}
+            for sa in sa_rows:
+                sid = str(sa.section_id)
+                if sid not in sections_map:
+                    sections_map[sid] = {
+                        'section_id': sid,
+                        'section_name': sa.section.name,
+                        'student_count': student_counts.get((exam_id_str, sid), 0),
+                        'subjects': [],
+                    }
+                sections_map[sid]['subjects'].append({
+                    'subject_id': str(sa.subject_id),
+                    'subject_name': sa.subject.subject_name,
+                    'avg_marks': round(sa.avg_marks, 2),
+                    'median_marks': round(sa.median_marks, 2),
+                    'std_dev': round(sa.std_dev, 2),
+                    'at_risk_count': sa.at_risk_count,
+                    'max_marks': sa.subject.max_marks,
+                })
+
+            result.append({
+                'id': exam_id_str,
+                'exam_name': exam.exam_name,
+                'exam_date': str(exam.exam_date) if exam.exam_date else None,
+                'analytics_status': exam.analytics_status,
+                'type': 'CLASS' if exam.academic_class_id else 'SECTION',
+                'academic_class': (
+                    {'id': str(exam.academic_class_id), 'name': exam.academic_class.name}
+                    if exam.academic_class_id else None
+                ),
+                'sections': list(sections_map.values()),
+            })
+
+        return Response({'success': True, 'exams': result}, status=200)
+
     def create_exam_success(self, exam):
         return Response({
             'id': str(exam.id),

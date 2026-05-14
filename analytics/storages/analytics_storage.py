@@ -591,6 +591,56 @@ class AnalyticsDB:
             .order_by('-exam_date', '-created_at')
         )
 
+    def get_exams_for_class(self, class_id, school_id):
+        return list(
+            AnalyticsExam.objects
+            .filter(academic_class_id=class_id, school_id=school_id)
+            .select_related('academic_class', 'section')
+            .prefetch_related('subjects')
+            .order_by('-exam_date', '-created_at')
+        )
+
+    def get_section_analytics_for_exam_list(self, exam_ids, class_id, school_id):
+        """
+        Bulk-fetch SectionAnalytics for multiple exams in one query.
+        Returns {exam_id_str: [SectionAnalytics, ...]} ordered by section name then subject.
+        """
+        sa_list = list(
+            SectionAnalytics.objects
+            .filter(
+                exam_id__in=exam_ids,
+                academic_class_id=class_id,
+                exam__school_id=school_id,
+            )
+            .select_related('section', 'subject')
+            .order_by('exam_id', 'section__name', 'subject__subject_name')
+        )
+        result = defaultdict(list)
+        for sa in sa_list:
+            result[str(sa.exam_id)].append(sa)
+        return dict(result)
+
+    def get_student_counts_for_class_exams(self, exam_ids, class_id, school_id):
+        """
+        Returns {(exam_id_str, section_id_str): student_count} for all
+        sections in the given class across multiple exams.
+        """
+        rows = (
+            ExamResult.objects
+            .filter(
+                exam_id__in=exam_ids,
+                exam__school_id=school_id,
+                student__academic_class_id=class_id,
+                student__section__isnull=False,
+            )
+            .values('exam_id', 'student__section_id')
+            .annotate(count=Count('student_id', distinct=True))
+        )
+        return {
+            (str(r['exam_id']), str(r['student__section_id'])): r['count']
+            for r in rows
+        }
+
     def get_exams_for_teacher(self, teacher_profile, school_id):
         assigned_sections = list(teacher_profile.assigned_sections.all())
         class_ids = [s.academic_class_id for s in assigned_sections]
