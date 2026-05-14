@@ -34,6 +34,8 @@ from .interactors import (
     CreateSubjectInteractor,
     UpdateSubjectInteractor,
     DeleteSubjectInteractor,
+    UploadSchoolLogoInteractor,
+    DeleteSchoolLogoInteractor,
 )
 from .presenters.configuration import ConfigurationPresenter
 from .presenters.teachers import TeachersPresenter
@@ -44,6 +46,7 @@ from .presenters.sections import SectionsPresenter
 from .presenters.attendance import AttendanceSummaryPresenter
 from .presenters.classes import ClassesPresenter
 from .presenters.subjects import SubjectsPresenter
+from .presenters.school_logo import SchoolLogoPresenter
 
 
 @api_view(['GET', 'PATCH'])
@@ -57,6 +60,19 @@ def configuration_view(request):
     return UpdateConfigurationInteractor(
         storage=PrincipalDB(), presenter=ConfigurationPresenter(),
     ).update_configuration(user=request.user, data=request.data)
+
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def school_logo_view(request):
+    if request.method == 'POST':
+        return UploadSchoolLogoInteractor(
+            storage=PrincipalDB(), presenter=SchoolLogoPresenter(),
+        ).upload_logo(user=request.user, logo_file=request.FILES.get('logo'))
+    return DeleteSchoolLogoInteractor(
+        storage=PrincipalDB(), presenter=SchoolLogoPresenter(),
+    ).delete_logo(user=request.user)
 
 
 @api_view(['GET', 'POST'])

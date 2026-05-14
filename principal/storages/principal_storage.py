@@ -37,7 +37,17 @@ class PrincipalDB:
             return getattr(user, 'adminprofile', None)
         return getattr(user, 'principalprofile', None)
 
-    # --- School Configuration ---
+    # --- School Configuration & Logo ---
+
+    def update_school_logo(self, school_id, logo_url):
+        from core.models import School
+        try:
+            school = School.objects.get(id=school_id)
+            school.logo = logo_url
+            school.save(update_fields=['logo', 'updated_at'])
+            return school
+        except School.DoesNotExist:
+            return None
 
     def get_school_configuration(self, school_id):
         try:

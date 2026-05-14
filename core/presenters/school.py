@@ -11,6 +11,7 @@ class SchoolPresenter:
             'contact_email': school.contact_email,
             'contact_phone': school.contact_phone,
             'is_active': school.is_active,
+            'logo': school.logo,
         }
         
         if config:
