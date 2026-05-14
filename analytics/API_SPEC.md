@@ -60,11 +60,33 @@ Response `200`:
       "exam_name": "Unit Test 1",
       "exam_date": "2026-04-15",
       "analytics_status": "DONE",
-      "type": "CLASS"
+      "type": "CLASS",
+      "academic_class": { "id": "...", "name": "Class 11" },
+      "sections": [
+        { "id": "...", "name": "11A" },
+        { "id": "...", "name": "11B" }
+      ],
+      "my_sections": null
+    },
+    {
+      "id": "bbbb-...",
+      "exam_name": "Unit Test 2",
+      "exam_date": "2026-04-20",
+      "analytics_status": "DONE",
+      "type": "SECTION",
+      "academic_class": null,
+      "sections": [
+        { "id": "...", "name": "4A" }
+      ],
+      "my_sections": null
     }
   ]
 }
 ```
+
+> For **CLASS** exams, `sections` lists all sections belonging to that class.  
+> For **SECTION** exams, `sections` contains the one explicit section.  
+> `my_sections` is populated only for **TEACHER** role — it filters `sections` down to only the teacher's assigned sections within that class.
 
 ### `POST /api/v1/analytics/exams/` — Create Exam
 
@@ -485,7 +507,7 @@ GET /api/v1/analytics/section/<uuid:section_id>/?exam_id=<uuid>
 ```
 
 > `students` are ordered by `total_pct` descending (highest scorer first).  
-> `student_id` is the `AnalyticsStudent` UUID — use it to navigate to Screen 6 & 7.  
+> `student_id` is the `StudentProfile.id` — use it to navigate to Screen 6 & 7.  
 > `overall_risk` = worst risk label across all subjects (`ALERT > WATCH > SAFE`).
 
 ---
@@ -611,9 +633,9 @@ GET /api/v1/analytics/student/<uuid:student_id>/exams/
 
 | Param | Type | Description |
 |---|---|---|
-| `student_id` | UUID | `AnalyticsStudent.id` |
+| `student_id` | UUID | `StudentProfile.id` — the standard student ID from the student management APIs |
 
-**Response `200 OK`:**
+**Response `200 OK` — student has written exams:**
 ```json
 {
   "success": true,
@@ -635,23 +657,23 @@ GET /api/v1/analytics/student/<uuid:student_id>/exams/
          { "subject_id": "...", "subject_name": "MATHS", "marks": 70, "max_marks": 80, "risk_label": "SAFE" },
          { "subject_id": "...", "subject_name": "PHYSICS", "marks": 35, "max_marks": 40, "risk_label": "SAFE" }
       ]
-    },
-    {
-      "id": "...",
-      "exam_name": "Unit Test 1",
-      "exam_date": "2026-04-15",
-      "total_marks": 85,
-      "overall_risk": "ALERT",
-      "subjects": [
-         { "subject_id": "...", "subject_name": "MATHS", "marks": 40, "max_marks": 80, "risk_label": "WATCH" },
-         { "subject_id": "...", "subject_name": "PHYSICS", "marks": 15, "max_marks": 40, "risk_label": "ALERT" }
-      ]
     }
   ]
 }
 ```
 
-> Returns a combined list of all exams the student participated in, pre-populated with subject-wise results. `overall_risk` is automatically determined based on the highest risk level across all subjects for each exam.
+**Response `200 OK` — student has not written any exam:**
+```json
+{
+  "success": true,
+  "exams": [],
+  "message": "Student has not written any exam yet."
+}
+```
+
+> `student_id` in the URL is `StudentProfile.id` (the standard student ID). The backend resolves it to the internal `AnalyticsStudent` record automatically.  
+> If the student exists but has no exam data, returns an empty `exams` list with a message instead of a 404.  
+> `overall_risk` is the highest risk label across all subjects for that exam (`ALERT > WATCH > SAFE`).
 
 ---
 
@@ -667,7 +689,7 @@ GET /api/v1/analytics/student/<uuid:student_id>/?exam_id=<uuid>
 
 | Param | Type | Description |
 |---|---|---|
-| `student_id` | UUID | `AnalyticsStudent.id` — obtained from Screen 3's `student_id` field |
+| `student_id` | UUID | `StudentProfile.id` — the standard student ID from the student management APIs |
 
 **Query params:**
 
@@ -753,7 +775,7 @@ GET /api/v1/analytics/student/<uuid:student_id>/subject/<uuid:subject_id>/?exam_
 
 | Param | Type | Description |
 |---|---|---|
-| `student_id` | UUID | `AnalyticsStudent.id` |
+| `student_id` | UUID | `StudentProfile.id` — the standard student ID from the student management APIs |
 | `subject_id` | UUID | `ExamSubject.id` — obtained from Screen 6's subjects list |
 
 **Query params:**

@@ -12,12 +12,14 @@ class StudentInteractor:
 
     def get_student_summary(self, user, student_id, exam_id):
         school_id = self._get_school_id(user)
-        student = self._get_student(student_id, school_id)
+        student = self._get_student_by_profile_id(student_id, school_id)
+        if student is None:
+            raise StudentNotFoundError()
         self._check_student_access(user, student, school_id)
         exam, exams = self._get_done_exam_with_list(exam_id, school_id)
 
-        exam_results = self.storage.get_exam_results_for_student(exam_id, student_id, school_id)
-        risk_map = self.storage.get_student_risks_by_student_id(exam_id, student_id, school_id)
+        exam_results = self.storage.get_exam_results_for_student(exam_id, student.id, school_id)
+        risk_map = self.storage.get_student_risks_by_student_id(exam_id, student.id, school_id)
 
         return self.presenter.student_summary_success(
             student=student,
@@ -31,7 +33,9 @@ class StudentInteractor:
 
     def get_student_subject(self, user, student_id, subject_id, exam_id):
         school_id = self._get_school_id(user)
-        student = self._get_student(student_id, school_id)
+        student = self._get_student_by_profile_id(student_id, school_id)
+        if student is None:
+            raise StudentNotFoundError()
         self._check_student_access(user, student, school_id)
         exam, _ = self._get_done_exam_with_list(exam_id, school_id)
 
@@ -40,7 +44,7 @@ class StudentInteractor:
             raise NotFoundException('Subject not found for this exam.')
 
         exam_result = self.storage.get_exam_result_for_student_subject(
-            exam_id, student_id, subject_id, school_id
+            exam_id, student.id, subject_id, school_id
         )
         if exam_result is None:
             raise NotFoundException(
@@ -48,10 +52,10 @@ class StudentInteractor:
             )
 
         risk = self.storage.get_risk_for_student_subject(
-            exam_id, student_id, subject_id, school_id
+            exam_id, student.id, subject_id, school_id
         )
         question_results = self.storage.get_question_results_by_student_id(
-            exam_id, student_id, subject_id
+            exam_id, student.id, subject_id
         )
 
         return self.presenter.student_subject_success(
@@ -67,12 +71,14 @@ class StudentInteractor:
 
     def get_student_all_exams(self, user, student_id):
         school_id = self._get_school_id(user)
-        student = self._get_student(student_id, school_id)
+        student = self._get_student_by_profile_id(student_id, school_id)
+        if student is None:
+            return self.presenter.student_no_exams_success()
         self._check_student_access(user, student, school_id)
 
-        exams = self.storage.get_exams_for_student(student_id, school_id)
-        all_results = self.storage.get_all_exam_results_for_student(student_id, school_id)
-        all_risks = self.storage.get_all_student_risks_for_student(student_id, school_id)
+        exams = self.storage.get_exams_for_student(student.id, school_id)
+        all_results = self.storage.get_all_exam_results_for_student(student.id, school_id)
+        all_risks = self.storage.get_all_student_risks_for_student(student.id, school_id)
 
         return self.presenter.student_all_exams_success(student, exams, all_results, all_risks)
 
@@ -101,13 +107,11 @@ class StudentInteractor:
             return parent.school_id
         raise PermissionDeniedException('Access denied.')
 
-    def _get_student(self, student_id, school_id):
-        if not student_id:
+    def _get_student_by_profile_id(self, student_profile_id, school_id):
+        """Returns AnalyticsStudent looked up via StudentProfile.id, or None if not found."""
+        if not student_profile_id:
             raise ValidationException('student_id is required.')
-        student = self.storage.get_student_by_id(student_id, school_id)
-        if student is None:
-            raise StudentNotFoundError()
-        return student
+        return self.storage.get_analytics_student_by_profile_id(student_profile_id, school_id)
 
     def _get_done_exam_with_list(self, exam_id, school_id):
         """Returns (exam, exams_list). exam_id is required for student screens."""

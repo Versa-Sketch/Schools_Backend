@@ -26,7 +26,7 @@ urlpatterns = [
          views.section_question_students_view, name='analytics-section-question-students'),
 
 
-    # Student screens (principal/teacher/student/parent access)
+    # Student screens — student_id is StudentProfile.id (principal/teacher/student/parent access)
     path('student/<uuid:student_id>/exams/', views.student_all_exams_view, name='analytics-student-all-exams'),
     path('student/<uuid:student_id>/', views.student_summary_view, name='analytics-student-summary'),
     path('student/<uuid:student_id>/subject/<uuid:subject_id>/',
