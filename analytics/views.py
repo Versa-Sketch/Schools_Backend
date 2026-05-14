@@ -82,7 +82,7 @@ def exam_overview_view(request, exam_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin | IsTeacher])
 def class_subject_questions_view(request, exam_id, subject_id):
     return ClassSubjectQuestionsInteractor(
         storage=AnalyticsDB(), presenter=ExamPresenter(),
@@ -98,7 +98,7 @@ def class_question_students_view(request, exam_id, subject_id, q_no):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin | IsTeacher])
 def section_detail_view(request, exam_id, section_id):
     return SectionDetailInteractor(
         storage=AnalyticsDB(), presenter=SectionPresenter(),
