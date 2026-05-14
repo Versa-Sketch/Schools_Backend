@@ -320,6 +320,7 @@ class AnalyticsDB:
         try:
             return (
                 AnalyticsExam.objects
+                .select_related('academic_class', 'section')
                 .prefetch_related('subjects')
                 .get(id=exam_id, school_id=school_id)
             )
@@ -330,6 +331,7 @@ class AnalyticsDB:
         return list(
             AnalyticsExam.objects
             .filter(school_id=school_id)
+            .select_related('academic_class', 'section')
             .prefetch_related('subjects')
         )
 
@@ -576,6 +578,7 @@ class AnalyticsDB:
         return list(
             AnalyticsExam.objects
             .filter(results__student_id=student_id, school_id=school_id)
+            .select_related('academic_class', 'section')
             .prefetch_related('subjects')
             .distinct()
             .order_by('-exam_date', '-created_at')
@@ -590,6 +593,7 @@ class AnalyticsDB:
                 Q(section__in=assigned_sections) | Q(academic_class_id__in=class_ids),
                 school_id=school_id
             )
+            .select_related('academic_class', 'section')
             .prefetch_related('subjects')
             .distinct()
             .order_by('-exam_date', '-created_at')
