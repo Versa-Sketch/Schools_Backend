@@ -6,6 +6,7 @@ class SectionsPresenter:
         results = [
             {
                 'id': s.id,
+                'class_id': s.academic_class_id,
                 'class_name': s.academic_class.name,
                 'section_name': s.name,
                 'is_class_teacher': s.id in class_teacher_section_ids,

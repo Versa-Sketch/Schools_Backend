@@ -55,6 +55,7 @@ Response:
   "results": [
     {
       "id": "33333333-3333-3333-3333-333333333333",
+      "class_id": "22222222-2222-2222-2222-222222222222",
       "class_name": "Class 5",
       "section_name": "A",
       "is_class_teacher": true,
