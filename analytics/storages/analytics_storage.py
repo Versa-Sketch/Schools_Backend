@@ -327,6 +327,13 @@ class AnalyticsDB:
         except AnalyticsExam.DoesNotExist:
             return None
 
+    def get_sections_for_class_ids(self, class_ids, school_id):
+        return list(
+            Section.objects
+            .filter(academic_class_id__in=class_ids, school_id=school_id)
+            .order_by('academic_class_id', 'name')
+        )
+
     def get_exams_for_school(self, school_id):
         return list(
             AnalyticsExam.objects

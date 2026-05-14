@@ -6,11 +6,11 @@ class ExamPresenter:
     def permission_denied(self):
         return Response({'success': False, 'details': 'Permission denied.'}, status=403)
 
-    def exam_list_success(self, exams, teacher_sections=None):
+    def exam_list_success(self, exams, sections_by_class=None, teacher_sections=None):
         return Response({
             'success': True,
             'exams': [
-                self._fmt_exam(exam, teacher_sections=teacher_sections)
+                self._fmt_exam(exam, sections_by_class=sections_by_class, teacher_sections=teacher_sections)
                 for exam in exams
             ]
         }, status=200)
@@ -88,8 +88,17 @@ class ExamPresenter:
             }
         }, status=200)
 
-    def _fmt_exam(self, exam, teacher_sections=None):
-        # For class-level exams, show only the teacher's sections in that class
+    def _fmt_exam(self, exam, sections_by_class=None, teacher_sections=None):
+        if exam.academic_class_id:
+            raw = (sections_by_class or {}).get(str(exam.academic_class_id), [])
+            sections_out = [{'id': str(s.id), 'name': s.name} for s in raw]
+        else:
+            sections_out = (
+                [{'id': str(exam.section_id), 'name': exam.section.name}]
+                if exam.section_id else []
+            )
+
+        my_sections = None
         if teacher_sections is not None and exam.academic_class_id:
             exam_class_id = str(exam.academic_class_id)
             my_sections = [
@@ -97,8 +106,6 @@ class ExamPresenter:
                 for s in teacher_sections
                 if str(s.academic_class_id) == exam_class_id
             ]
-        else:
-            my_sections = None
 
         return {
             'id':               str(exam.id),
@@ -110,10 +117,7 @@ class ExamPresenter:
                 {'id': str(exam.academic_class_id), 'name': exam.academic_class.name}
                 if exam.academic_class_id else None
             ),
-            'section': (
-                {'id': str(exam.section_id), 'name': exam.section.name}
-                if exam.section_id else None
-            ),
+            'sections':    sections_out,
             'my_sections': my_sections,
         }
 
