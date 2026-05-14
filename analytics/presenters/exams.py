@@ -10,7 +10,7 @@ class ExamPresenter:
         return Response({
             'success': True,
             'exams': [
-                {**self._fmt_exam(exam), 'type': 'CLASS' if exam.academic_class_id else 'SECTION'}
+                self._fmt_exam(exam)
                 for exam in exams
             ]
         }, status=200)
@@ -38,7 +38,7 @@ class ExamPresenter:
             sections = [s for s in sections if s['section_id'] in assigned_ids]
 
         return Response({
-            'exam':         {**self._fmt_exam(exam), 'type': 'CLASS'},
+            'exam':         self._fmt_exam(exam),
             'role_view':    role_view,
             'class_avgs':   overview['class_avgs'],
             'sections':     sections,
@@ -47,9 +47,8 @@ class ExamPresenter:
 
     def section_overview_success(self, exam, section, subject_avgs, top_students, role_view='STAFF'):
         return Response({
-            'exam':         {**self._fmt_exam(exam), 'type': 'SECTION'},
+            'exam':         self._fmt_exam(exam),
             'role_view':    role_view,
-            'section':      {'id': str(section.id), 'name': section.name},
             'subject_avgs': subject_avgs,
             'top_students': top_students,
         }, status=200)
@@ -95,6 +94,15 @@ class ExamPresenter:
             'exam_name':        exam.exam_name,
             'exam_date':        str(exam.exam_date) if exam.exam_date else None,
             'analytics_status': exam.analytics_status,
+            'type':             'CLASS' if exam.academic_class_id else 'SECTION',
+            'academic_class': (
+                {'id': str(exam.academic_class_id), 'name': exam.academic_class.name}
+                if exam.academic_class_id else None
+            ),
+            'section': (
+                {'id': str(exam.section_id), 'name': exam.section.name}
+                if exam.section_id else None
+            ),
         }
 
     def question_list_success(self, exam, exam_subject, questions):
