@@ -322,7 +322,9 @@ class SectionSubjectQuestionsInteractor:
         if exam_subject is None:
             raise NotFoundException('Subject not found for this exam.')
 
-        questions = self.storage.get_question_analytics_for_subject(exam_id, subject_id)
+        questions = self.storage.get_question_analytics_for_section_subject(
+            exam_id, section_id, subject_id
+        )
         return self.presenter.section_subject_questions_success(section, exam, exam_subject, questions)
 
 

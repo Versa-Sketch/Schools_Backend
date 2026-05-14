@@ -242,7 +242,7 @@ Response `200`:
 
 ### `GET /api/v1/analytics/exams/{exam_id}/sections/{section_id}/subjects/{subject_id}/questions/` — Section Question Stats
 
-Same shape as class question stats, with added `section` field.
+Same shape as class question stats, with added `section` field. Counts are filtered to students in the requested `section_id`.
 
 ### `GET /api/v1/analytics/exams/{exam_id}/sections/{section_id}/subjects/{subject_id}/questions/{q_no}/students/` — Section Question Students
 

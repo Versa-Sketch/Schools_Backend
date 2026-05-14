@@ -1,4 +1,5 @@
 from collections import defaultdict
+from types import SimpleNamespace
 
 from django.db.models import Avg, Count, Q, Sum
 
@@ -714,6 +715,53 @@ class AnalyticsDB:
             .select_related('subject')
             .order_by('q_no')
         )
+
+    def get_question_analytics_for_section_subject(self, exam_id, section_id, subject_id):
+        global_analytics = {
+            qa.q_no: qa
+            for qa in QuestionAnalytics.objects.filter(
+                exam_id=exam_id,
+                subject_id=subject_id,
+            )
+        }
+        rows = list(
+            QuestionResult.objects
+            .filter(
+                exam_id=exam_id,
+                subject_id=subject_id,
+                student__section_id=section_id,
+            )
+            .values('q_no', 'status')
+        )
+
+        counts = defaultdict(lambda: {'C': 0, 'W': 0, 'U': 0})
+        for row in rows:
+            counts[row['q_no']][row['status']] += 1
+
+        q_numbers = sorted(set(global_analytics.keys()) | set(counts.keys()))
+        questions = []
+        for q_no in q_numbers:
+            q_counts = counts[q_no]
+            total = q_counts['C'] + q_counts['W'] + q_counts['U']
+            difficulty_index = round((q_counts['C'] / total) * 100, 1) if total else 0
+            if difficulty_index > 70:
+                difficulty_tag = 'EASY'
+            elif difficulty_index >= 30:
+                difficulty_tag = 'MEDIUM'
+            else:
+                difficulty_tag = 'HARD'
+
+            global_row = global_analytics.get(q_no)
+            questions.append(SimpleNamespace(
+                q_no=q_no,
+                correct_count=q_counts['C'],
+                wrong_count=q_counts['W'],
+                skip_count=q_counts['U'],
+                difficulty_index=difficulty_index,
+                difficulty_tag=difficulty_tag,
+                has_key_error=global_row.has_key_error if global_row else False,
+            ))
+        return questions
 
     def get_question_detail(self, exam_id, subject_id, q_no):
         try:
