@@ -1,4 +1,4 @@
-from core.exceptions import NotFoundException, ValidationException
+from core.exceptions import NotFoundException, PermissionDeniedException, ValidationException
 from analytics.constants import ANALYTICS_STATUS_DONE
 from analytics.exceptions import AnalyticsValidationError, ExamNotFoundError
 from principal.exceptions import PrincipalPermissionException
@@ -157,12 +157,18 @@ class ClassSubjectQuestionsInteractor:
         self.presenter = presenter
 
     def get(self, user, exam_id, subject_id):
-        if user.role not in ('ADMIN', 'PRINCIPAL'):
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            profile = self.storage.get_principal_profile(user)
+            if profile is None:
+                raise NotFoundException('Principal profile not found.')
+            school_id = profile.school_id
+        elif user.role == 'TEACHER':
+            teacher = getattr(user, 'teacherprofile', None)
+            if teacher is None:
+                raise NotFoundException('Teacher profile not found.')
+            school_id = teacher.school_id
+        else:
             raise PrincipalPermissionException()
-        profile = self.storage.get_principal_profile(user)
-        if profile is None:
-            raise NotFoundException('Principal profile not found.')
-        school_id = profile.school_id
 
         exam = self.storage.get_exam_by_id(exam_id, school_id)
         if exam is None:
@@ -186,12 +192,18 @@ class ClassQuestionStudentsInteractor:
         self.presenter = presenter
 
     def get(self, user, exam_id, subject_id, q_no):
-        if user.role not in ('ADMIN', 'PRINCIPAL'):
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            profile = self.storage.get_principal_profile(user)
+            if profile is None:
+                raise NotFoundException('Principal profile not found.')
+            school_id = profile.school_id
+        elif user.role == 'TEACHER':
+            teacher = getattr(user, 'teacherprofile', None)
+            if teacher is None:
+                raise NotFoundException('Teacher profile not found.')
+            school_id = teacher.school_id
+        else:
             raise PrincipalPermissionException()
-        profile = self.storage.get_principal_profile(user)
-        if profile is None:
-            raise NotFoundException('Principal profile not found.')
-        school_id = profile.school_id
 
         exam = self.storage.get_exam_by_id(exam_id, school_id)
         if exam is None:
@@ -215,12 +227,21 @@ class SectionDetailInteractor:
         self.presenter = presenter
 
     def get(self, user, exam_id, section_id):
-        if user.role not in ('ADMIN', 'PRINCIPAL'):
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            profile = self.storage.get_principal_profile(user)
+            if profile is None:
+                raise NotFoundException('Principal profile not found.')
+            school_id = profile.school_id
+        elif user.role == 'TEACHER':
+            teacher = getattr(user, 'teacherprofile', None)
+            if teacher is None:
+                raise NotFoundException('Teacher profile not found.')
+            school_id = teacher.school_id
+            assigned_ids = list(teacher.assigned_sections.values_list('id', flat=True))
+            if section_id not in assigned_ids:
+                raise PermissionDeniedException('You can only view sections assigned to you.')
+        else:
             raise PrincipalPermissionException()
-        profile = self.storage.get_principal_profile(user)
-        if profile is None:
-            raise NotFoundException('Principal profile not found.')
-        school_id = profile.school_id
 
         exam = self.storage.get_exam_by_id(exam_id, school_id)
         if exam is None:
@@ -244,12 +265,21 @@ class SectionSubjectQuestionsInteractor:
         self.presenter = presenter
 
     def get(self, user, exam_id, section_id, subject_id):
-        if user.role not in ('ADMIN', 'PRINCIPAL'):
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            profile = self.storage.get_principal_profile(user)
+            if profile is None:
+                raise NotFoundException('Principal profile not found.')
+            school_id = profile.school_id
+        elif user.role == 'TEACHER':
+            teacher = getattr(user, 'teacherprofile', None)
+            if teacher is None:
+                raise NotFoundException('Teacher profile not found.')
+            school_id = teacher.school_id
+            assigned_ids = list(teacher.assigned_sections.values_list('id', flat=True))
+            if section_id not in assigned_ids:
+                raise PermissionDeniedException('You can only view sections assigned to you.')
+        else:
             raise PrincipalPermissionException()
-        profile = self.storage.get_principal_profile(user)
-        if profile is None:
-            raise NotFoundException('Principal profile not found.')
-        school_id = profile.school_id
 
         exam = self.storage.get_exam_by_id(exam_id, school_id)
         if exam is None:
@@ -277,12 +307,21 @@ class SectionQuestionStudentsInteractor:
         self.presenter = presenter
 
     def get(self, user, exam_id, section_id, subject_id, q_no):
-        if user.role not in ('ADMIN', 'PRINCIPAL'):
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            profile = self.storage.get_principal_profile(user)
+            if profile is None:
+                raise NotFoundException('Principal profile not found.')
+            school_id = profile.school_id
+        elif user.role == 'TEACHER':
+            teacher = getattr(user, 'teacherprofile', None)
+            if teacher is None:
+                raise NotFoundException('Teacher profile not found.')
+            school_id = teacher.school_id
+            assigned_ids = list(teacher.assigned_sections.values_list('id', flat=True))
+            if section_id not in assigned_ids:
+                raise PermissionDeniedException('You can only view sections assigned to you.')
+        else:
             raise PrincipalPermissionException()
-        profile = self.storage.get_principal_profile(user)
-        if profile is None:
-            raise NotFoundException('Principal profile not found.')
-        school_id = profile.school_id
 
         exam = self.storage.get_exam_by_id(exam_id, school_id)
         if exam is None:
