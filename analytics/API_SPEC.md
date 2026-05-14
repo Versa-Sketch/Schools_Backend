@@ -491,9 +491,23 @@ GET /api/v1/analytics/section/<uuid:section_id>/?exam_id=<uuid>
       "student_id": "e5f6a7b8-...",
       "student_ref_id": "2251863",
       "name": "MAHIMA REDDY.G",
-      "maths_pct": 52.5,
-      "physics_pct": 45.0,
-      "chem_pct": 37.5,
+      "subject_details": [
+        {
+          "subject_id": "...",
+          "subject_name": "CHEMISTRY",
+          "subject_percentage": 37.5
+        },
+        {
+          "subject_id": "...",
+          "subject_name": "MATHS",
+          "subject_percentage": 52.5
+        },
+        {
+          "subject_id": "...",
+          "subject_name": "PHYSICS",
+          "subject_percentage": 45.0
+        }
+      ],
       "total_pct": 46.9,
       "subject_risk": {
         "MATHS": "WATCH",

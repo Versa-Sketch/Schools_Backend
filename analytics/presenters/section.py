@@ -25,13 +25,14 @@ class SectionPresenter:
             total_max   = sum(max_marks.get(s, 1) for s in subj_map)
             total_pct   = round((total_marks / total_max) * 100, 1) if total_max else 0
 
-            # Per-subject percentage
-            def pct(subject, _subj_map=subj_map):
-                er = _subj_map.get(subject)
-                if er is None:
-                    return None
+            subject_details = []
+            for subject, er in sorted(subj_map.items()):
                 mm = max_marks.get(subject, 1)
-                return round((er.total_marks / mm) * 100, 1)
+                subject_details.append({
+                    'subject_id': str(er.subject_id),
+                    'subject_name': subject,
+                    'subject_percentage': round((er.total_marks / mm) * 100, 1) if mm else 0,
+                })
 
             # Subject-wise risk labels
             subject_risk = {
@@ -50,9 +51,7 @@ class SectionPresenter:
                 'student_id':     sid,
                 'student_ref_id': student_obj[sid].student_ref_id,
                 'name':           student_obj[sid].name,
-                'maths_pct':      pct('MATHS'),
-                'physics_pct':    pct('PHYSICS'),
-                'chem_pct':       pct('CHEMISTRY'),
+                'subject_details': subject_details,
                 'total_pct':      total_pct,
                 'subject_risk':   subject_risk,
                 'overall_risk':   overall_risk,
