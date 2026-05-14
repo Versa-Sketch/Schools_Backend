@@ -8,3 +8,4 @@ from .sections import ListSectionsInteractor, UpdateSectionInteractor, CreateSec
 from .classes import ListClassesInteractor, CreateClassInteractor, UpdateClassInteractor, DeleteClassInteractor
 from .subjects import CreateSubjectInteractor, UpdateSubjectInteractor, DeleteSubjectInteractor
 from .attendance import DailyAttendanceSummaryInteractor, ClassAttendanceDetailInteractor
+from .school_logo import UploadSchoolLogoInteractor, DeleteSchoolLogoInteractor

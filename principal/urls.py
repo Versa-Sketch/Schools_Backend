@@ -6,6 +6,7 @@ from analytics import views as analytics_views
 
 urlpatterns = [
     path('configuration/', views.configuration_view, name='principal-configuration'),
+    path('school/logo/', views.school_logo_view, name='principal-school-logo'),
     path('teachers/', views.teacher_list_view, name='principal-teacher-list'),
     path('teachers/<uuid:teacher_id>/', views.teacher_detail_view, name='principal-teacher-detail'),
     path('students/bulk-upload/', views.bulk_upload_view, name='principal-bulk-upload'),

@@ -141,6 +141,7 @@ class School(TimeStampedModel):
     address = models.TextField(blank=True, null=True)
     contact_email = models.EmailField(blank=True, null=True)
     contact_phone = models.CharField(max_length=20, blank=True, null=True)
+    logo = models.URLField(max_length=500, blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
