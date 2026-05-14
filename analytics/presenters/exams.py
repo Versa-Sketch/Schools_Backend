@@ -6,11 +6,11 @@ class ExamPresenter:
     def permission_denied(self):
         return Response({'success': False, 'details': 'Permission denied.'}, status=403)
 
-    def exam_list_success(self, exams):
+    def exam_list_success(self, exams, teacher_sections=None):
         return Response({
             'success': True,
             'exams': [
-                self._fmt_exam(exam)
+                self._fmt_exam(exam, teacher_sections=teacher_sections)
                 for exam in exams
             ]
         }, status=200)
@@ -88,7 +88,18 @@ class ExamPresenter:
             }
         }, status=200)
 
-    def _fmt_exam(self, exam):
+    def _fmt_exam(self, exam, teacher_sections=None):
+        # For class-level exams, show only the teacher's sections in that class
+        if teacher_sections is not None and exam.academic_class_id:
+            exam_class_id = str(exam.academic_class_id)
+            my_sections = [
+                {'id': str(s.id), 'name': s.name}
+                for s in teacher_sections
+                if str(s.academic_class_id) == exam_class_id
+            ]
+        else:
+            my_sections = None
+
         return {
             'id':               str(exam.id),
             'exam_name':        exam.exam_name,
@@ -103,6 +114,7 @@ class ExamPresenter:
                 {'id': str(exam.section_id), 'name': exam.section.name}
                 if exam.section_id else None
             ),
+            'my_sections': my_sections,
         }
 
     def question_list_success(self, exam, exam_subject, questions):

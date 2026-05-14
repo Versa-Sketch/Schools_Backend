@@ -42,32 +42,43 @@ class ListExamsInteractor:
         self.presenter = presenter
 
     def list(self, user):
+        # Fetch profile once — used for school_id resolution and data query
+        profile = None
         school_id = getattr(user, 'school_id', None)
         if not school_id:
-            # Try to get school from profile
             if user.role in ('ADMIN', 'PRINCIPAL'):
                 profile = self.storage.get_principal_profile(user)
+                school_id = profile.school_id if profile else None
+            elif user.role == 'TEACHER':
+                profile = self.storage.get_teacher_profile(user)
+                school_id = profile.school_id if profile else None
+            elif user.role == 'STUDENT':
+                profile = self.storage.get_student_profile(user)
                 school_id = profile.school_id if profile else None
 
         if not school_id:
             return self.presenter.permission_denied()
 
         if user.role == 'STUDENT':
-            student_profile = self.storage.get_student_profile(user)
+            # Reuse profile fetched above if available, else fetch now
+            student_profile = profile or self.storage.get_student_profile(user)
             if not student_profile:
                 return self.presenter.permission_denied()
             exams = self.storage.get_exams_for_student(student_profile.id, school_id)
+            return self.presenter.exam_list_success(exams)
         elif user.role == 'TEACHER':
-            teacher_profile = self.storage.get_teacher_profile(user)
+            # Reuse profile fetched above if available, else fetch now
+            teacher_profile = profile or self.storage.get_teacher_profile(user)
             if not teacher_profile:
                 return self.presenter.permission_denied()
+            assigned_sections = list(teacher_profile.assigned_sections.all())
             exams = self.storage.get_exams_for_teacher(teacher_profile, school_id)
+            return self.presenter.exam_list_success(exams, teacher_sections=assigned_sections)
         elif user.role in ('PRINCIPAL', 'ADMIN'):
             exams = self.storage.get_exams_for_school(school_id)
+            return self.presenter.exam_list_success(exams)
         else:
             return self.presenter.permission_denied()
-            
-        return self.presenter.exam_list_success(exams)
 
 
 class ExamOverviewInteractor:
@@ -80,6 +91,12 @@ class ExamOverviewInteractor:
         if not school_id:
             if user.role in ('ADMIN', 'PRINCIPAL'):
                 profile = self.storage.get_principal_profile(user)
+                school_id = profile.school_id if profile else None
+            elif user.role == 'TEACHER':
+                profile = self.storage.get_teacher_profile(user)
+                school_id = profile.school_id if profile else None
+            elif user.role == 'STUDENT':
+                profile = self.storage.get_student_profile(user)
                 school_id = profile.school_id if profile else None
 
         if not school_id:
