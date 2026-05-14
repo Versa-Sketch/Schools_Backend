@@ -10,6 +10,7 @@ from .models import (
     AnnouncementTarget,
     AttendanceSession,
     Homework,
+    HomeworkAttachment,
     ParentQuery,
     ParentQueryReply,
     School,
@@ -123,6 +124,11 @@ class AnnouncementAttachmentAdmin(admin.ModelAdmin):
     list_display = ('announcement', 'filename', 'content_type')
 
 
+class HomeworkAttachmentInline(admin.TabularInline):
+    model = HomeworkAttachment
+    extra = 0
+
+
 @admin.register(StudyMaterial)
 class StudyMaterialAdmin(admin.ModelAdmin):
     list_display = ('title', 'school', 'section', 'subject', 'uploaded_by', 'material_date')
@@ -134,6 +140,12 @@ class StudyMaterialAdmin(admin.ModelAdmin):
 class HomeworkAdmin(admin.ModelAdmin):
     list_display = ('section', 'subject', 'assigned_by', 'deadline')
     list_filter = ('school', 'section', 'subject', 'deadline')
+    inlines = (HomeworkAttachmentInline,)
+
+
+@admin.register(HomeworkAttachment)
+class HomeworkAttachmentAdmin(admin.ModelAdmin):
+    list_display = ('homework', 'filename', 'content_type')
 
 
 @admin.register(StudentBulkUploadBatch)

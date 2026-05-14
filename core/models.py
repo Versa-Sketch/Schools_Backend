@@ -435,6 +435,20 @@ class Homework(TimeStampedModel):
         return f'{self.subject} homework for {self.section}'
 
 
+class HomeworkAttachment(TimeStampedModel):
+    homework = models.ForeignKey(
+        Homework,
+        on_delete=models.CASCADE,
+        related_name='attachments',
+    )
+    file = models.URLField(max_length=500)
+    filename = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.filename
+
+
 class StudentBulkUploadBatch(TimeStampedModel):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     uploaded_by = models.ForeignKey(

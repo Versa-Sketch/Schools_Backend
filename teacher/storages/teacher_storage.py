@@ -9,6 +9,7 @@ from core.models import (
     AnnouncementAttachment,
     AnnouncementTarget,
     Homework,
+    HomeworkAttachment,
     ParentQuery,
     ParentQueryReply,
     SchoolConfiguration,
@@ -171,8 +172,36 @@ class TeacherDB:
             assigned_by=teacher_profile, description=description, deadline=deadline,
         )
 
+    def create_homework_attachments(self, homework, files):
+        from core.services.s3_upload import upload_to_s3, ATTACHMENT_TYPES
+        attachments = []
+        for f in files:
+            url = upload_to_s3(f, 'homework', allowed_types=ATTACHMENT_TYPES)
+            attachments.append(HomeworkAttachment(
+                homework=homework,
+                file=url,
+                filename=f.name,
+                content_type=getattr(f, 'content_type', ''),
+            ))
+        if attachments:
+            HomeworkAttachment.objects.bulk_create(attachments)
+        return attachments
+
+    def get_homework_by_id(self, homework_id):
+        return (
+            Homework.objects
+            .select_related('subject', 'assigned_by')
+            .prefetch_related('attachments')
+            .get(id=homework_id)
+        )
+
     def get_homework(self, teacher_profile, section_id=None, subject_id=None, deadline_from=None, deadline_to=None):
-        qs = Homework.objects.filter(assigned_by=teacher_profile).select_related('subject', 'assigned_by')
+        qs = (
+            Homework.objects
+            .filter(assigned_by=teacher_profile)
+            .select_related('subject', 'assigned_by')
+            .prefetch_related('attachments')
+        )
         if section_id:
             qs = qs.filter(section_id=section_id)
         if subject_id:

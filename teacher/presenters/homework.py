@@ -2,6 +2,15 @@ from rest_framework.response import Response
 
 
 class HomeworkPresenter:
+    def _fmt_attachments(self, homework):
+        return [
+            {
+                'url': a.file,
+                'filename': a.filename,
+            }
+            for a in homework.attachments.all()
+        ]
+
     def homework_success(self, homework):
         return Response({
             'id': homework.id,
@@ -9,6 +18,7 @@ class HomeworkPresenter:
             'subject': {'id': homework.subject_id, 'name': homework.subject.name},
             'description': homework.description,
             'deadline': homework.deadline.isoformat() if homework.deadline else None,
+            'attachments': self._fmt_attachments(homework),
         }, status=201)
 
     def homework_list_success(self, homework):
@@ -19,6 +29,7 @@ class HomeworkPresenter:
                 'subject': {'id': h.subject_id, 'name': h.subject.name},
                 'description': h.description,
                 'deadline': h.deadline.isoformat() if h.deadline else None,
+                'attachments': self._fmt_attachments(h),
             }
             for h in homework
         ]

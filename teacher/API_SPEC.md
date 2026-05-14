@@ -252,6 +252,8 @@ Query params: `section_id` (UUID), `subject_id` (UUID), `date_from`, `date_to`
 
 ### `POST /api/v1/teacher/homework/`
 
+Content type: `application/json` or `multipart/form-data`
+
 Request:
 
 ```json
@@ -262,6 +264,8 @@ Request:
   "deadline": "2026-05-06T17:00:00Z"
 }
 ```
+
+For file attachments, send the same fields as multipart form data and include 0-N `files` fields.
 
 Response:
 
@@ -274,13 +278,21 @@ Response:
     "name": "Mathematics"
   },
   "description": "Complete exercise 5.1.",
-  "deadline": "2026-05-06T17:00:00Z"
+  "deadline": "2026-05-06T17:00:00Z",
+  "attachments": [
+    {
+      "url": "https://bucket.s3.region.amazonaws.com/homework/uuid.pdf",
+      "filename": "exercise-5-1.pdf"
+    }
+  ]
 }
 ```
 
 ### `GET /api/v1/teacher/homework/`
 
 Query params: `section_id` (UUID), `subject_id` (UUID), `deadline_from`, `deadline_to`
+
+Each result includes `attachments` with `url` and `filename`.
 
 ## Exam Marks
 

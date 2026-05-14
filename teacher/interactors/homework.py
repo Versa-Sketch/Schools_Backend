@@ -10,7 +10,7 @@ class CreateHomeworkInteractor:
         self.storage = storage
         self.presenter = presenter
 
-    def create_homework(self, user, data):
+    def create_homework(self, user, data, files=None):
         _ensure_teacher(user)
         teacher = self.storage.get_teacher_profile(user)
         if teacher is None:
@@ -41,8 +41,10 @@ class CreateHomeworkInteractor:
             raise ValidationException(constants.SUBJECT_NOT_ASSIGNED)
 
         hw = self.storage.create_homework(teacher, section, subject, description, deadline)
+        self.storage.create_homework_attachments(hw, files or [])
         from notifications.service import NotificationService
         NotificationService.homework_assigned(hw.id)
+        hw = self.storage.get_homework_by_id(hw.id)
         return self.presenter.homework_success(homework=hw)
 
 

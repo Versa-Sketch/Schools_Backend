@@ -180,7 +180,14 @@ Response:
       "assigned_by": {
         "id": "55555555-5555-5555-5555-555555555555",
         "name": "Anita Sharma"
-      }
+      },
+      "attachments": [
+        {
+          "url": "https://bucket.s3.region.amazonaws.com/homework/uuid.pdf",
+          "filename": "exercise-5-1.pdf",
+          "content_type": "application/pdf"
+        }
+      ]
     }
   ]
 }

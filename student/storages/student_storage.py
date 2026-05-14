@@ -59,7 +59,12 @@ class StudentDB:
         return qs
 
     def get_homework_for_student(self, student_profile, subject_id=None, deadline_from=None, deadline_to=None):
-        qs = Homework.objects.filter(section=student_profile.section).select_related('subject', 'assigned_by')
+        qs = (
+            Homework.objects
+            .filter(section=student_profile.section)
+            .select_related('subject', 'assigned_by')
+            .prefetch_related('attachments')
+        )
         if subject_id:
             qs = qs.filter(subject_id=subject_id)
         if deadline_from:

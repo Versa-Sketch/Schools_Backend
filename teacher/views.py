@@ -113,12 +113,16 @@ def study_material_view(request):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
-@parser_classes([JSONParser])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
 def homework_view(request):
     if request.method == 'POST':
         return CreateHomeworkInteractor(
             storage=TeacherDB(), presenter=HomeworkPresenter(),
-        ).create_homework(user=request.user, data=request.data)
+        ).create_homework(
+            user=request.user,
+            data=request.data,
+            files=request.FILES.getlist('files'),
+        )
     return ListHomeworkInteractor(
         storage=TeacherDB(), presenter=HomeworkPresenter(),
     ).list_homework(
