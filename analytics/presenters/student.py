@@ -35,6 +35,7 @@ class StudentPresenter:
             risk_labels.append(risk_label)
 
             subjects.append({
+                'subject_id':         str(er.subject_id),
                 'subject_name':       subj,
                 'total_marks':        er.total_marks,
                 'max_marks':          mm,

@@ -714,6 +714,7 @@ GET /api/v1/analytics/student/<uuid:student_id>/?exam_id=<uuid>
   ],
   "subjects": [
     {
+      "subject_id": "...",
       "subject_name": "CHEMISTRY",
       "total_marks": 30,
       "max_marks": 40,
@@ -727,6 +728,7 @@ GET /api/v1/analytics/student/<uuid:student_id>/?exam_id=<uuid>
       "z_score": 0.8112
     },
     {
+      "subject_id": "...",
       "subject_name": "MATHS",
       "total_marks": 42,
       "max_marks": 80,
@@ -740,6 +742,7 @@ GET /api/v1/analytics/student/<uuid:student_id>/?exam_id=<uuid>
       "z_score": -0.12
     },
     {
+      "subject_id": "...",
       "subject_name": "PHYSICS",
       "total_marks": 18,
       "max_marks": 40,
