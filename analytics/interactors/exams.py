@@ -99,7 +99,7 @@ class ExamOverviewInteractor:
                 overview = self.storage.get_exam_overview(exam_id, school_id)
                 return self.presenter.class_overview_success(exam, overview, top_students, role_view='STAFF')
             else:
-                subject_avgs = self.storage.get_section_overview(exam_id, str(exam.section_id))
+                subject_avgs = self.storage.get_section_overview(exam_id, exam.section_id)
                 return self.presenter.section_overview_success(exam, exam.section, subject_avgs, top_students, role_view='STAFF')
 
         elif user.role == 'TEACHER':
@@ -113,7 +113,7 @@ class ExamOverviewInteractor:
                 overview = self.storage.get_exam_overview(exam_id, school_id)
                 return self.presenter.class_overview_success(exam, overview, top_students, role_view='STAFF', teacher_sections=assigned_sections)
             else:
-                subject_avgs = self.storage.get_section_overview(exam_id, str(exam.section_id))
+                subject_avgs = self.storage.get_section_overview(exam_id, exam.section_id)
                 return self.presenter.section_overview_success(exam, exam.section, subject_avgs, top_students, role_view='STAFF')
 
         elif user.role == 'STUDENT':

@@ -27,6 +27,7 @@ from .interactors import (
     ClassAttendanceDetailInteractor,
     CreateSectionInteractor,
     DeleteSectionInteractor,
+    ListClassesInteractor,
     CreateClassInteractor,
     UpdateClassInteractor,
     DeleteClassInteractor,
@@ -175,13 +176,17 @@ def section_detail_view(request, section_id):
         storage=PrincipalDB(), presenter=SectionsPresenter(),
     ).update_section(user=request.user, section_id=section_id, data=request.data)
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
 @parser_classes([JSONParser])
-def class_create_view(request):
-    return CreateClassInteractor(
+def classes_view(request):
+    if request.method == 'POST':
+        return CreateClassInteractor(
+            storage=PrincipalDB(), presenter=ClassesPresenter(),
+        ).create_class(user=request.user, data=request.data)
+    return ListClassesInteractor(
         storage=PrincipalDB(), presenter=ClassesPresenter(),
-    ).create_class(user=request.user, data=request.data)
+    ).list_classes(user=request.user)
 
 @api_view(['PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
@@ -238,5 +243,3 @@ def class_attendance_detail_view(request, class_id):
     return ClassAttendanceDetailInteractor(
         storage=PrincipalDB(), presenter=AttendanceSummaryPresenter(),
     ).get_detail(user=request.user, class_id=class_id, date=date)
-
-

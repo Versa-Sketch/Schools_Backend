@@ -5,6 +5,21 @@ from core.exceptions import NotFoundException, ValidationException
 from .base import _ensure_principal
 
 
+class ListClassesInteractor:
+    def __init__(self, storage, presenter):
+        self.storage = storage
+        self.presenter = presenter
+
+    def list_classes(self, user):
+        _ensure_principal(user)
+        profile = self.storage.get_principal_profile(user)
+        if profile is None:
+            raise NotFoundException('Principal profile not found.')
+
+        classes = self.storage.get_classes_for_school(profile.school_id)
+        return self.presenter.class_list_success(classes=classes)
+
+
 class CreateClassInteractor:
     def __init__(self, storage, presenter):
         self.storage = storage

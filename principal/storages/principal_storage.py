@@ -483,6 +483,9 @@ class PrincipalDB:
 
     # --- Classes, Subjects, Sections CRUD ---
 
+    def get_classes_for_school(self, school_id):
+        return list(AcademicClass.objects.filter(school_id=school_id).order_by('display_order', 'name'))
+
     def create_class(self, school, name, display_order=0):
         return AcademicClass.objects.create(school=school, name=name, display_order=display_order)
 
