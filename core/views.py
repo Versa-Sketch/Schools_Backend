@@ -10,7 +10,13 @@ from .interactors.login import LoginInteractor
 from .interactors.logout import LogoutInteractor
 from .interactors.refresh_token import RefreshTokenInteractor
 from .interactors.school import SchoolInteractor
-from .interactors.lookup import ClassListInteractor, SectionListInteractor, SubjectListInteractor
+from .interactors.lookup import (
+    ClassListInteractor,
+    SectionListInteractor,
+    SectionStudentsInteractor,
+    StudentDetailInteractor,
+    SubjectListInteractor,
+)
 from .interactors.calendar_events import CalendarEventListInteractor
 from .interactors.announcements import AnnouncementListInteractor, AnnouncementDetailInteractor
 
@@ -101,6 +107,24 @@ def section_list_view(request):
         storage=CoreDB(),
         presenter=LookupPresenter(),
     ).get_sections(user=request.user, class_id=class_id)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def section_students_view(request, section_id):
+    return SectionStudentsInteractor(
+        storage=CoreDB(),
+        presenter=LookupPresenter(),
+    ).get_students(user=request.user, section_id=section_id)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def student_detail_view(request, student_id):
+    return StudentDetailInteractor(
+        storage=CoreDB(),
+        presenter=LookupPresenter(),
+    ).get_student(user=request.user, student_id=student_id, date=request.query_params.get('date'))
 
 
 @api_view(['GET'])

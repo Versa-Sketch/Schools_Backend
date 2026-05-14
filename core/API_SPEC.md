@@ -267,7 +267,12 @@ Response:
 
 ### `GET /api/v1/classes/`
 
-Lists classes for the current school.
+Lists classes visible to the current user.
+
+- Principal/Admin: all classes in the school.
+- Teacher: classes where the teacher is assigned to at least one section.
+- Parent: classes for linked children.
+- Student: own class.
 
 Response:
 
@@ -286,7 +291,12 @@ Response:
 
 ### `GET /api/v1/sections/`
 
-Lists sections for the current school.
+Lists sections visible to the current user.
+
+- Principal/Admin: all sections in the school.
+- Teacher: all sections in a class where the teacher is assigned to at least one section.
+- Parent: sections for linked children.
+- Student: own section.
 
 Query params:
 
@@ -313,6 +323,97 @@ Response:
   ]
 }
 ```
+
+### `GET /api/v1/sections/{section_id}/students/`
+
+Lists students in a section visible to the current user.
+
+- Principal/Admin: all active students in the section.
+- Teacher: students in any section of a class where the teacher is assigned to at least one section.
+- Parent: only linked children in that section.
+- Student: only self when the section matches.
+
+Response:
+
+```json
+{
+  "count": 1,
+  "results": [
+    {
+      "id": "66666666-6666-6666-6666-666666666666",
+      "user_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "name": "Aarav Mehta",
+      "roll_number": "1",
+      "admission_number": "ADM001",
+      "academic_class": {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "name": "Class 5"
+      },
+      "section": {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "name": "A"
+      }
+    }
+  ]
+}
+```
+
+### `GET /api/v1/students/{student_id}/`
+
+Returns student details plus attendance status for one day.
+
+Query params:
+
+- `date`: optional `YYYY-MM-DD`. Defaults to today.
+
+Access:
+
+- Principal/Admin: any active student in the school.
+- Teacher: any student in a class where the teacher is assigned to at least one section.
+- Parent: linked children only.
+- Student: self only.
+
+Response:
+
+```json
+{
+  "student": {
+    "id": "66666666-6666-6666-6666-666666666666",
+    "user_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "name": "Aarav Mehta",
+    "roll_number": "1",
+    "admission_number": "ADM001",
+    "academic_class": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Class 5"
+    },
+    "section": {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "A"
+    }
+  },
+  "attendance": {
+    "date": "2026-05-14",
+    "status": "PRESENT",
+    "present_count": 1,
+    "absent_count": 0,
+    "records": [
+      {
+        "slot": "MORNING",
+        "status": "PRESENT",
+        "confirmed_at": "2026-05-14T09:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+Attendance `status` values:
+
+- `PRESENT`: all confirmed records for the day are present.
+- `ABSENT`: all confirmed records for the day are absent.
+- `PARTIAL`: mixed present and absent records for twice-per-day attendance.
+- `NOT_MARKED`: no confirmed attendance record exists for that day.
 
 ### `GET /api/v1/subjects/`
 

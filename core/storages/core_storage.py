@@ -5,8 +5,10 @@ from core.models import (
     Announcement,
     AcademicClass,
     Section,
+    StudentAttendance,
     Subject,
 )
+from student.models import StudentProfile
 
 
 class CoreDB:
@@ -33,6 +35,19 @@ class CoreDB:
     def get_classes_for_school(self, school_id):
         return AcademicClass.objects.filter(school_id=school_id)
 
+    def get_classes_for_user(self, user, profile, school_id):
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            return self.get_classes_for_school(school_id)
+        if user.role == 'TEACHER':
+            class_ids = profile.assigned_sections.values_list('academic_class_id', flat=True)
+            return AcademicClass.objects.filter(school_id=school_id, id__in=class_ids)
+        if user.role == 'PARENT':
+            class_ids = profile.students.filter(is_active=True).values_list('academic_class_id', flat=True)
+            return AcademicClass.objects.filter(school_id=school_id, id__in=class_ids)
+        if user.role == 'STUDENT':
+            return AcademicClass.objects.filter(school_id=school_id, id=profile.academic_class_id)
+        return AcademicClass.objects.none()
+
     def get_sections_for_school(self, school_id, class_id=None):
         qs = Section.objects.filter(school_id=school_id).select_related(
             'academic_class', 'class_teacher'
@@ -40,6 +55,86 @@ class CoreDB:
         if class_id:
             qs = qs.filter(academic_class_id=class_id)
         return qs
+
+    def get_sections_for_user(self, user, profile, school_id, class_id=None):
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            return self.get_sections_for_school(school_id, class_id=class_id)
+
+        qs = Section.objects.filter(school_id=school_id).select_related(
+            'academic_class', 'class_teacher'
+        )
+        if user.role == 'TEACHER':
+            class_ids = profile.assigned_sections.values_list('academic_class_id', flat=True)
+            qs = qs.filter(academic_class_id__in=class_ids)
+        elif user.role == 'PARENT':
+            section_ids = profile.students.filter(is_active=True).values_list('section_id', flat=True)
+            qs = qs.filter(id__in=section_ids)
+        elif user.role == 'STUDENT':
+            qs = qs.filter(id=profile.section_id)
+        else:
+            qs = qs.none()
+        if class_id:
+            qs = qs.filter(academic_class_id=class_id)
+        return qs
+
+    def can_access_section(self, user, profile, section_id, school_id):
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            return Section.objects.filter(id=section_id, school_id=school_id).exists()
+        if user.role == 'TEACHER':
+            section = Section.objects.filter(id=section_id, school_id=school_id).first()
+            if section is None:
+                return False
+            return profile.assigned_sections.filter(academic_class_id=section.academic_class_id).exists()
+        if user.role == 'PARENT':
+            return profile.students.filter(section_id=section_id, school_id=school_id, is_active=True).exists()
+        if user.role == 'STUDENT':
+            return str(profile.section_id) == str(section_id)
+        return False
+
+    def get_students_for_section_user(self, user, profile, section_id, school_id):
+        qs = StudentProfile.objects.filter(
+            section_id=section_id,
+            school_id=school_id,
+            is_active=True,
+        ).select_related('academic_class', 'section', 'school')
+        if user.role == 'PARENT':
+            qs = qs.filter(id__in=profile.students.values_list('id', flat=True))
+        elif user.role == 'STUDENT':
+            qs = qs.filter(id=profile.id)
+        return qs.order_by('name')
+
+    def get_student_by_id(self, student_id, school_id):
+        try:
+            return StudentProfile.objects.select_related(
+                'academic_class', 'section', 'school'
+            ).get(id=student_id, school_id=school_id, is_active=True)
+        except StudentProfile.DoesNotExist:
+            return None
+
+    def can_access_student(self, user, profile, student, school_id):
+        if user.role in ('ADMIN', 'PRINCIPAL'):
+            return student.school_id == school_id
+        if user.role == 'TEACHER':
+            return profile.assigned_sections.filter(
+                academic_class_id=student.academic_class_id
+            ).exists()
+        if user.role == 'PARENT':
+            return profile.students.filter(id=student.id, is_active=True).exists()
+        if user.role == 'STUDENT':
+            return profile.id == student.id
+        return False
+
+    def get_student_attendance_for_date(self, student, date):
+        return list(
+            StudentAttendance.objects
+            .filter(
+                student=student,
+                session__date=date,
+                session__confirmed_at__isnull=False,
+            )
+            .select_related('session')
+            .order_by('session__slot')
+        )
 
     def get_subjects_for_school(self, school_id):
         return Subject.objects.filter(school_id=school_id, is_active=True)
