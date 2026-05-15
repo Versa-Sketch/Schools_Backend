@@ -284,9 +284,8 @@ class TeacherDB:
 
     def get_student_attendance(self, teacher_profile, student_id, date_from=None, date_to=None, slot=None, status=None):
         from core.exceptions import NotFoundException
-        if not StudentProfile.objects.filter(
-            id=student_id, section__in=teacher_profile.assigned_sections.all()
-        ).exists():
+        student = StudentProfile.objects.filter(id=student_id).first()
+        if not student or not self.is_section_accessible(teacher_profile, student.section_id):
             raise NotFoundException('Student not found in your assigned sections.')
         qs = StudentAttendance.objects.filter(
             student_id=student_id,
