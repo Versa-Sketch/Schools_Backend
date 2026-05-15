@@ -135,6 +135,45 @@ class TeacherDB:
                 )
         return Announcement.objects.prefetch_related('announcementattachment_set').get(id=ann.id)
 
+    def get_teacher_announcement(self, announcement_id, teacher_profile):
+        try:
+            return Announcement.objects.prefetch_related(
+                'announcementattachment_set',
+                'announcementtarget_set',
+            ).get(
+                id=announcement_id,
+                school_id=teacher_profile.school_id,
+                author=teacher_profile.user,
+                author_role='TEACHER',
+                is_active=True,
+            )
+        except Announcement.DoesNotExist:
+            return None
+
+    def update_teacher_announcement(self, announcement, section, updates, files=None):
+        with transaction.atomic():
+            for field, value in updates.items():
+                setattr(announcement, field, value)
+            announcement.save()
+
+            if section is not None:
+                announcement.announcementtarget_set.all().delete()
+                AnnouncementTarget.objects.create(announcement=announcement, section=section)
+
+            for f in files or []:
+                from core.services.s3_upload import upload_to_s3, ATTACHMENT_TYPES
+                url = upload_to_s3(f, 'announcements', allowed_types=ATTACHMENT_TYPES)
+                AnnouncementAttachment.objects.create(
+                    announcement=announcement, file=url, filename=f.name,
+                    content_type=getattr(f, 'content_type', ''),
+                )
+
+        return Announcement.objects.prefetch_related('announcementattachment_set').get(id=announcement.id)
+
+    def delete_teacher_announcement(self, announcement):
+        announcement.is_active = False
+        announcement.save(update_fields=['is_active', 'updated_at'])
+
     # --- Study Materials ---
 
     def get_subject_by_id(self, subject_id, school_id):
@@ -242,6 +281,26 @@ class TeacherDB:
         query.status = 'CLOSED'
         query.save(update_fields=['status', 'updated_at'])
         return query
+
+    def get_student_attendance(self, teacher_profile, student_id, date_from=None, date_to=None, slot=None, status=None):
+        from core.exceptions import NotFoundException
+        if not StudentProfile.objects.filter(
+            id=student_id, section__in=teacher_profile.assigned_sections.all()
+        ).exists():
+            raise NotFoundException('Student not found in your assigned sections.')
+        qs = StudentAttendance.objects.filter(
+            student_id=student_id,
+            session__confirmed_at__isnull=False,
+        ).select_related('session')
+        if date_from:
+            qs = qs.filter(session__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(session__date__lte=date_to)
+        if slot:
+            qs = qs.filter(session__slot=slot)
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('-session__date')
 
     def get_parent_query_with_replies(self, query_id, teacher_profile):
         try:

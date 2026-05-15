@@ -4,6 +4,8 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
 from core.permissions import IsAdmin, IsTeacher
 from .storages.teacher_storage import TeacherDB
+from django.utils.dateparse import parse_date
+
 from .interactors import (
     ListSectionsInteractor,
     ListSectionStudentsInteractor,
@@ -11,6 +13,8 @@ from .interactors import (
     MarkAttendanceInteractor,
     ConfirmAttendanceInteractor,
     CreateTeacherAnnouncementInteractor,
+    UpdateTeacherAnnouncementInteractor,
+    DeleteTeacherAnnouncementInteractor,
     CreateStudyMaterialInteractor,
     ListStudyMaterialsInteractor,
     CreateHomeworkInteractor,
@@ -21,6 +25,7 @@ from .interactors import (
     GetQueryDetailInteractor,
     ExamMarksNotImplementedInteractor,
     UpdateTeacherProfilePicInteractor,
+    TeacherStudentAttendanceInteractor,
 )
 from .presenters.sections import SectionsPresenter
 from .presenters.attendance import AttendancePresenter
@@ -30,6 +35,7 @@ from .presenters.homework import HomeworkPresenter
 from .presenters.parent_queries import ParentQueriesPresenter
 from .presenters.exams import ExamPresenter
 from .presenters.profile_pic import ProfilePicPresenter
+from student.presenters.attendance import StudentAttendancePresenter
 
 
 @api_view(['PATCH'])
@@ -90,6 +96,24 @@ def announcement_create_view(request):
     return CreateTeacherAnnouncementInteractor(
         storage=TeacherDB(), presenter=AnnouncementPresenter(),
     ).create_announcement(user=request.user, data=request.data, files=request.FILES.getlist('attachments'))
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def announcement_detail_view(request, announcement_id):
+    if request.method == 'DELETE':
+        return DeleteTeacherAnnouncementInteractor(
+            storage=TeacherDB(), presenter=AnnouncementPresenter(),
+        ).delete_announcement(user=request.user, announcement_id=announcement_id)
+    return UpdateTeacherAnnouncementInteractor(
+        storage=TeacherDB(), presenter=AnnouncementPresenter(),
+    ).update_announcement(
+        user=request.user,
+        announcement_id=announcement_id,
+        data=request.data,
+        files=request.FILES.getlist('attachments'),
+    )
 
 
 @api_view(['GET', 'POST'])
@@ -175,3 +199,15 @@ def parent_query_close_view(request, query_id):
 @permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
 def exam_marks_view(request, exam_id):
     return ExamMarksNotImplementedInteractor(presenter=ExamPresenter()).respond(user=request.user)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsTeacher | IsAdmin])
+def teacher_student_attendance_view(request, student_id):
+    date_from = parse_date(request.query_params.get('date_from')) if request.query_params.get('date_from') else None
+    date_to = parse_date(request.query_params.get('date_to')) if request.query_params.get('date_to') else None
+    slot = request.query_params.get('slot')
+    status = request.query_params.get('status')
+    return TeacherStudentAttendanceInteractor(
+        storage=TeacherDB(), presenter=StudentAttendancePresenter(),
+    ).get_attendance(user=request.user, student_id=student_id, date_from=date_from, date_to=date_to, slot=slot, status=status)

@@ -2,10 +2,12 @@ from .configuration import GetConfigurationInteractor, UpdateConfigurationIntera
 from .teachers import ListTeachersInteractor, CreateTeacherInteractor, UpdateTeacherInteractor
 from .bulk_upload import BulkUploadStudentsInteractor, GetBulkUploadStatusInteractor
 from .teacher_bulk_upload import BulkUploadTeachersInteractor, GetTeacherBulkUploadStatusInteractor
-from .announcements import CreateAnnouncementInteractor
+from .announcements import CreateAnnouncementInteractor, UpdateAnnouncementInteractor, DeleteAnnouncementInteractor
 from .calendar import CreateCalendarEventInteractor, UpdateCalendarEventInteractor, DeleteCalendarEventInteractor
 from .sections import ListSectionsInteractor, UpdateSectionInteractor, CreateSectionInteractor, DeleteSectionInteractor
 from .classes import ListClassesInteractor, CreateClassInteractor, UpdateClassInteractor, DeleteClassInteractor
 from .subjects import CreateSubjectInteractor, UpdateSubjectInteractor, DeleteSubjectInteractor
 from .attendance import DailyAttendanceSummaryInteractor, ClassAttendanceDetailInteractor
 from .school_logo import UploadSchoolLogoInteractor, DeleteSchoolLogoInteractor
+from .profile_pic import UpdatePrincipalProfilePicInteractor
+from .student_attendance import PrincipalStudentAttendanceInteractor

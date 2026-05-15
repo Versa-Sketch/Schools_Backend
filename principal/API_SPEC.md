@@ -16,6 +16,33 @@ All `id` and `*_id` fields are UUID strings (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx
 - Every object must belong to the principal's school.
 - Cross-school object IDs use `NOT_FOUND` or `PERMISSION_DENIED`.
 
+## Profile Picture
+
+### `PATCH /api/v1/principal/profile/pic/`
+
+Uploads or replaces the principal's profile picture.
+
+Content type: `multipart/form-data`
+
+Field: `profile_pic` — image file (JPEG, PNG, WebP, or GIF; maximum 50 MB).
+
+Response:
+
+```json
+{
+  "profile_pic_url": "https://bucket.s3.region.amazonaws.com/profile_pics/uuid.jpg"
+}
+```
+
+The returned URL is also included in the `profile_pic_url` field of `GET /api/v1/me/`.
+
+Validation:
+
+- `profile_pic` field is required. Returns `VALIDATION_ERROR` otherwise.
+- File MIME type must be one of: `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Returns `VALIDATION_ERROR` otherwise.
+- File size must not exceed 50 MB. Returns `VALIDATION_ERROR` otherwise.
+- S3 upload failure returns `UPLOAD_FAILED`.
+
 ## School Configuration
 
 ### `GET /api/v1/principal/configuration/`
@@ -247,6 +274,19 @@ Rules:
 - `SCHOOL` announcements do not require targets.
 - `CLASS` announcements require one or more `class_ids` (UUID array).
 - `SECTION` announcements require one or more `section_ids` (UUID array).
+- Principal can update or delete any active announcement in their school, including teacher-created announcements.
+
+### `PATCH /api/v1/principal/announcements/{announcement_id}/`
+
+Content type: `multipart/form-data` when attachments are included.
+
+Partial update fields: `title`, `body`, `audience`, `class_ids`, `section_ids`, `publish_now`, `attachments`.
+
+If `audience` is changed to `CLASS`, `class_ids` is required. If `audience` is changed to `SECTION`, `section_ids` is required. New `attachments` are appended to the announcement.
+
+### `DELETE /api/v1/principal/announcements/{announcement_id}/`
+
+Soft deletes the announcement by marking it inactive. Inactive announcements are hidden from common announcement list/detail APIs.
 
 ## Calendar Management
 
@@ -600,7 +640,9 @@ Response:
 
 Notes:
 
-- Students with no confirmed attendance record for the day are counted in `total_students` and `absent_count` but **not listed** in `present_students` or `absent_students`.
+- `absent_count` reflects only students explicitly marked `ABSENT` in a confirmed session. It does **not** include students with no record (e.g. future dates or dates with no session taken).
+- Students with no confirmed attendance record for the day are counted in `total_students` but **not listed** in `present_students` or `absent_students`, and are **not** counted in `absent_count`.
+- For a future date or a date with no confirmed session: `present_count` and `absent_count` will both be `0`; `present_students` and `absent_students` will be empty arrays.
 - Class-level `present_students` and `absent_students` include students from all sections, each with a `section` field showing the section name.
 - Section-level name lists omit the `section` field.
 - Sections are ordered alphabetically by name.
@@ -608,6 +650,64 @@ Notes:
 Errors:
 
 - `404 NOT_FOUND` if `class_id` does not belong to the principal's school.
+
+---
+
+### `GET /api/v1/principal/students/{student_id}/attendance/`
+
+Returns the attendance history for a specific student. The student must belong to the principal's school. `{student_id}` is a UUID.
+
+Query params (all optional):
+
+| Parameter | Type | Description |
+|---|---|---|
+| `date_from` | `YYYY-MM-DD` | Filter records on or after this date |
+| `date_to` | `YYYY-MM-DD` | Filter records on or before this date |
+| `slot` | `MORNING` \| `AFTERNOON` | Filter by attendance slot |
+| `status` | `PRESENT` \| `ABSENT` | Filter by attendance status |
+
+Response:
+
+```json
+{
+  "count": 3,
+  "results": [
+    {
+      "date": "2026-05-14",
+      "slot": "MORNING",
+      "status": "PRESENT",
+      "confirmed_at": "2026-05-14T08:45:00+05:30"
+    },
+    {
+      "date": "2026-05-13",
+      "slot": "MORNING",
+      "status": "ABSENT",
+      "confirmed_at": "2026-05-13T08:50:00+05:30"
+    },
+    {
+      "date": "2026-05-12",
+      "slot": "MORNING",
+      "status": "PRESENT",
+      "confirmed_at": "2026-05-12T08:47:00+05:30"
+    }
+  ],
+  "summary": {
+    "present_count": 2,
+    "absent_count": 1,
+    "attendance_percentage": 66.7
+  }
+}
+```
+
+Notes:
+
+- Results are ordered by date descending.
+- Only confirmed attendance sessions are included.
+- `attendance_percentage = present_count / (present_count + absent_count) * 100`, rounded to 1 decimal place.
+
+Errors:
+
+- `404 NOT_FOUND` if `student_id` does not belong to the principal's school.
 
 ---
 
@@ -643,6 +743,9 @@ Response:
 - Non-principal users receive `PERMISSION_DENIED` for all principal endpoints.
 - Configuration updates only affect the current school.
 - Teacher creation rejects non-UUID or cross-school subject/section IDs.
-- UUID path params (`teacher_id`, `batch_id`) reject non-UUID values with 404.
+- UUID path params (`teacher_id`, `batch_id`, `student_id`, `class_id`) reject non-UUID values with 404.
 - Bulk upload processes valid rows and records invalid row errors.
 - Calendar creation rejects invalid date ranges.
+- Profile picture upload requires a valid image file; wrong MIME type returns `VALIDATION_ERROR`.
+- Student attendance history returns `NOT_FOUND` for cross-school student UUIDs.
+- Class attendance detail for a future date or a date with no confirmed session returns `present_count: 0`, `absent_count: 0`, and empty student lists.

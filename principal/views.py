@@ -18,6 +18,8 @@ from .interactors import (
     BulkUploadTeachersInteractor,
     GetTeacherBulkUploadStatusInteractor,
     CreateAnnouncementInteractor,
+    UpdateAnnouncementInteractor,
+    DeleteAnnouncementInteractor,
     CreateCalendarEventInteractor,
     UpdateCalendarEventInteractor,
     DeleteCalendarEventInteractor,
@@ -36,6 +38,8 @@ from .interactors import (
     DeleteSubjectInteractor,
     UploadSchoolLogoInteractor,
     DeleteSchoolLogoInteractor,
+    UpdatePrincipalProfilePicInteractor,
+    PrincipalStudentAttendanceInteractor,
 )
 from .presenters.configuration import ConfigurationPresenter
 from .presenters.teachers import TeachersPresenter
@@ -47,6 +51,8 @@ from .presenters.attendance import AttendanceSummaryPresenter
 from .presenters.classes import ClassesPresenter
 from .presenters.subjects import SubjectsPresenter
 from .presenters.school_logo import SchoolLogoPresenter
+from .presenters.profile_pic import ProfilePicPresenter
+from student.presenters.attendance import StudentAttendancePresenter
 
 
 @api_view(['GET', 'PATCH'])
@@ -143,6 +149,24 @@ def announcement_create_view(request):
     return CreateAnnouncementInteractor(
         storage=PrincipalDB(), presenter=AnnouncementPresenter(),
     ).create_announcement(user=request.user, data=request.data, files=request.FILES.getlist('attachments'))
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def announcement_detail_view(request, announcement_id):
+    if request.method == 'DELETE':
+        return DeleteAnnouncementInteractor(
+            storage=PrincipalDB(), presenter=AnnouncementPresenter(),
+        ).delete_announcement(user=request.user, announcement_id=announcement_id)
+    return UpdateAnnouncementInteractor(
+        storage=PrincipalDB(), presenter=AnnouncementPresenter(),
+    ).update_announcement(
+        user=request.user,
+        announcement_id=announcement_id,
+        data=request.data,
+        files=request.FILES.getlist('attachments'),
+    )
 
 
 @api_view(['POST'])
@@ -259,3 +283,24 @@ def class_attendance_detail_view(request, class_id):
     return ClassAttendanceDetailInteractor(
         storage=PrincipalDB(), presenter=AttendanceSummaryPresenter(),
     ).get_detail(user=request.user, class_id=class_id, date=date)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+@parser_classes([MultiPartParser, FormParser])
+def update_principal_profile_pic_view(request):
+    return UpdatePrincipalProfilePicInteractor(
+        presenter=ProfilePicPresenter(),
+    ).update(user=request.user, file=request.FILES.get('profile_pic'))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
+def principal_student_attendance_view(request, student_id):
+    date_from = parse_date(request.query_params.get('date_from')) if request.query_params.get('date_from') else None
+    date_to = parse_date(request.query_params.get('date_to')) if request.query_params.get('date_to') else None
+    slot = request.query_params.get('slot')
+    status = request.query_params.get('status')
+    return PrincipalStudentAttendanceInteractor(
+        storage=PrincipalDB(), presenter=StudentAttendancePresenter(),
+    ).get_attendance(user=request.user, student_id=student_id, date_from=date_from, date_to=date_to, slot=slot, status=status)

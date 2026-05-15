@@ -91,6 +91,64 @@ Response:
 }
 ```
 
+## Student Attendance History
+
+### `GET /api/v1/teacher/students/{student_id}/attendance/`
+
+Returns the attendance history for a specific student. The student must be in one of the teacher's assigned sections. `{student_id}` is a UUID.
+
+Query params (all optional):
+
+| Parameter | Type | Description |
+|---|---|---|
+| `date_from` | `YYYY-MM-DD` | Filter records on or after this date |
+| `date_to` | `YYYY-MM-DD` | Filter records on or before this date |
+| `slot` | `MORNING` \| `AFTERNOON` | Filter by attendance slot |
+| `status` | `PRESENT` \| `ABSENT` | Filter by attendance status |
+
+Response:
+
+```json
+{
+  "count": 3,
+  "results": [
+    {
+      "date": "2026-05-14",
+      "slot": "MORNING",
+      "status": "PRESENT",
+      "confirmed_at": "2026-05-14T08:45:00+05:30"
+    },
+    {
+      "date": "2026-05-13",
+      "slot": "MORNING",
+      "status": "ABSENT",
+      "confirmed_at": "2026-05-13T08:50:00+05:30"
+    },
+    {
+      "date": "2026-05-12",
+      "slot": "MORNING",
+      "status": "PRESENT",
+      "confirmed_at": "2026-05-12T08:47:00+05:30"
+    }
+  ],
+  "summary": {
+    "present_count": 2,
+    "absent_count": 1,
+    "attendance_percentage": 66.7
+  }
+}
+```
+
+Notes:
+
+- Results are ordered by date descending.
+- Only confirmed attendance sessions are included.
+- `attendance_percentage = present_count / (present_count + absent_count) * 100`, rounded to 1 decimal place.
+
+Errors:
+
+- `404 NOT_FOUND` if the student does not exist in any of the teacher's assigned sections.
+
 ## Attendance
 
 ### `POST /api/v1/teacher/attendance-sessions/`
@@ -215,6 +273,19 @@ Response:
 Validation:
 
 - Teacher must be the class teacher for the section.
+- Teacher can update or delete only announcements they created.
+
+### `PATCH /api/v1/teacher/announcements/{announcement_id}/`
+
+Content type: `multipart/form-data` when attachments are included.
+
+Partial update fields: `section_id`, `title`, `body`, `publish_now`, `attachments`.
+
+If `section_id` is provided, the teacher must be the class teacher for that section. New `attachments` are appended to the announcement.
+
+### `DELETE /api/v1/teacher/announcements/{announcement_id}/`
+
+Soft deletes the teacher-created announcement by marking it inactive.
 
 ## Study Materials
 
@@ -416,10 +487,11 @@ Errors:
 ## Teacher Test Scenarios
 
 - Teacher sees only assigned and class teacher sections.
-- UUID path params (`section_id`, `session_id`, `query_id`, `exam_id`) reject non-UUID values with 404.
+- UUID path params (`section_id`, `session_id`, `query_id`, `exam_id`, `student_id`) reject non-UUID values with 404.
 - Attendance session uniqueness enforced per section/date/slot.
 - Once-per-day schools reject afternoon attendance.
 - Confirmed attendance cannot be edited.
 - Teacher announcements limited to class teacher sections.
 - Study materials and homework reject unassigned section UUIDs.
 - Parent query replies update status when `mark_answered` is true.
+- Student attendance history returns `NOT_FOUND` if the student is not in any of the teacher's assigned sections.

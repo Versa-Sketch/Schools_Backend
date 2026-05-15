@@ -373,6 +373,45 @@ class PrincipalDB:
                 )
         return Announcement.objects.prefetch_related('announcementattachment_set').get(id=ann.id)
 
+    def get_announcement(self, announcement_id, school_id):
+        try:
+            return Announcement.objects.prefetch_related(
+                'announcementattachment_set',
+                'announcementtarget_set',
+            ).get(id=announcement_id, school_id=school_id, is_active=True)
+        except Announcement.DoesNotExist:
+            return None
+
+    def update_announcement(self, announcement, updates, class_ids=None, section_ids=None, files=None):
+        with transaction.atomic():
+            for field, value in updates.items():
+                setattr(announcement, field, value)
+            announcement.save()
+
+            if 'audience' in updates or class_ids is not None or section_ids is not None:
+                audience = updates.get('audience', announcement.audience)
+                announcement.announcementtarget_set.all().delete()
+                if audience == 'CLASS':
+                    for cid in class_ids or []:
+                        AnnouncementTarget.objects.create(announcement=announcement, academic_class_id=cid)
+                elif audience == 'SECTION':
+                    for sid in section_ids or []:
+                        AnnouncementTarget.objects.create(announcement=announcement, section_id=sid)
+
+            for f in files or []:
+                from core.services.s3_upload import upload_to_s3, ATTACHMENT_TYPES
+                url = upload_to_s3(f, 'announcements', allowed_types=ATTACHMENT_TYPES)
+                AnnouncementAttachment.objects.create(
+                    announcement=announcement, file=url, filename=f.name,
+                    content_type=getattr(f, 'content_type', ''),
+                )
+
+        return Announcement.objects.prefetch_related('announcementattachment_set').get(id=announcement.id)
+
+    def delete_announcement(self, announcement):
+        announcement.is_active = False
+        announcement.save(update_fields=['is_active', 'updated_at'])
+
     # --- Calendar ---
 
     def create_calendar_event(self, school, title, event_type, start_date, end_date, description, visible_to):
@@ -562,3 +601,23 @@ class PrincipalDB:
 
     def delete_section(self, section):
         section.delete()
+
+    def get_student_attendance(self, school_id, student_id, date_from=None, date_to=None, slot=None, status=None):
+        from student.models import StudentProfile
+        from core.exceptions import NotFoundException
+        if not StudentProfile.objects.filter(id=student_id, school_id=school_id).exists():
+            raise NotFoundException('Student not found.')
+        qs = StudentAttendance.objects.filter(
+            student_id=student_id,
+            session__school_id=school_id,
+            session__confirmed_at__isnull=False,
+        ).select_related('session')
+        if date_from:
+            qs = qs.filter(session__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(session__date__lte=date_to)
+        if slot:
+            qs = qs.filter(session__slot=slot)
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('-session__date')

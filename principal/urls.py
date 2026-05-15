@@ -14,6 +14,7 @@ urlpatterns = [
     path('teachers/bulk-upload/', views.teacher_bulk_upload_view, name='principal-teacher-bulk-upload'),
     path('teachers/bulk-upload/<uuid:batch_id>/', views.teacher_bulk_upload_status_view, name='principal-teacher-bulk-upload-status'),
     path('announcements/', views.announcement_create_view, name='principal-announcement-create'),
+    path('announcements/<uuid:announcement_id>/', views.announcement_detail_view, name='principal-announcement-detail'),
     path('calendar-events/', views.calendar_event_create_view, name='principal-calendar-event-create'),
     path('calendar-events/<uuid:event_id>/', views.calendar_event_detail_view, name='principal-calendar-event-detail'),
     path('sections/', views.section_list_view, name='principal-section-list'),
@@ -26,4 +27,6 @@ urlpatterns = [
     path('subjects/<uuid:subject_id>/', views.subject_detail_view, name='principal-subject-detail'),
     path('attendance/daily-summary/', views.daily_attendance_summary_view, name='principal-attendance-daily-summary'),
     path('attendance/classes/<uuid:class_id>/', views.class_attendance_detail_view, name='principal-attendance-class-detail'),
+    path('profile/pic/', views.update_principal_profile_pic_view, name='principal-profile-pic'),
+    path('students/<uuid:student_id>/attendance/', views.principal_student_attendance_view, name='principal-student-attendance'),
 ]
