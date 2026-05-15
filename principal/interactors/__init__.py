@@ -11,3 +11,4 @@ from .attendance import DailyAttendanceSummaryInteractor, ClassAttendanceDetailI
 from .school_logo import UploadSchoolLogoInteractor, DeleteSchoolLogoInteractor
 from .profile_pic import UpdatePrincipalProfilePicInteractor
 from .student_attendance import PrincipalStudentAttendanceInteractor
+from .assign_sections import AssignTeacherSectionsInteractor
