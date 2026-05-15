@@ -40,7 +40,10 @@ class CoreDB:
             return self.get_classes_for_school(school_id)
         if user.role == 'TEACHER':
             class_ids = profile.assigned_sections.values_list('academic_class_id', flat=True)
-            return AcademicClass.objects.filter(school_id=school_id, id__in=class_ids)
+            ct_class_ids = Section.objects.filter(school_id=school_id, class_teacher=profile).values_list('academic_class_id', flat=True)
+            return AcademicClass.objects.filter(school_id=school_id).filter(
+                Q(id__in=class_ids) | Q(id__in=ct_class_ids)
+            ).distinct()
         if user.role == 'PARENT':
             class_ids = profile.students.filter(is_active=True).values_list('academic_class_id', flat=True)
             return AcademicClass.objects.filter(school_id=school_id, id__in=class_ids)
@@ -65,7 +68,7 @@ class CoreDB:
         )
         if user.role == 'TEACHER':
             class_ids = profile.assigned_sections.values_list('academic_class_id', flat=True)
-            qs = qs.filter(academic_class_id__in=class_ids)
+            qs = qs.filter(Q(academic_class_id__in=class_ids) | Q(class_teacher_id=profile.id))
         elif user.role == 'PARENT':
             section_ids = profile.students.filter(is_active=True).values_list('section_id', flat=True)
             qs = qs.filter(id__in=section_ids)
@@ -84,7 +87,10 @@ class CoreDB:
             section = Section.objects.filter(id=section_id, school_id=school_id).first()
             if section is None:
                 return False
-            return profile.assigned_sections.filter(academic_class_id=section.academic_class_id).exists()
+            return (
+                section.class_teacher_id == profile.id or
+                profile.assigned_sections.filter(academic_class_id=section.academic_class_id).exists()
+            )
         if user.role == 'PARENT':
             return profile.students.filter(section_id=section_id, school_id=school_id, is_active=True).exists()
         if user.role == 'STUDENT':
@@ -115,9 +121,10 @@ class CoreDB:
         if user.role in ('ADMIN', 'PRINCIPAL'):
             return student.school_id == school_id
         if user.role == 'TEACHER':
-            return profile.assigned_sections.filter(
-                academic_class_id=student.academic_class_id
-            ).exists()
+            return (
+                student.section.class_teacher_id == profile.id or
+                profile.assigned_sections.filter(academic_class_id=student.academic_class_id).exists()
+            )
         if user.role == 'PARENT':
             return profile.students.filter(id=student.id, is_active=True).exists()
         if user.role == 'STUDENT':

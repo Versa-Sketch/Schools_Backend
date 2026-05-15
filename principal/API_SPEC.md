@@ -75,6 +75,42 @@ Validation:
 
 - `attendance_frequency` must be `ONCE` or `TWICE`.
 
+## School Logo
+
+### `POST /api/v1/principal/school/logo/`
+
+Uploads or replaces the school's logo.
+
+Content type: `multipart/form-data`
+
+Field: `logo` — image file (JPEG, PNG, WebP, or GIF; maximum 50 MB).
+
+Response:
+
+```json
+{
+  "logo": "https://bucket.s3.region.amazonaws.com/schools/logos/uuid.jpg"
+}
+```
+
+Validation:
+
+- `logo` field is required. Returns `VALIDATION_ERROR` otherwise.
+- File MIME type must be a valid image type. Returns `VALIDATION_ERROR` otherwise.
+- S3 upload failure returns `UPLOAD_FAILED`.
+
+### `DELETE /api/v1/principal/school/logo/`
+
+Removes the school's logo (sets it to `null`).
+
+Response:
+
+```json
+{
+  "logo": null
+}
+```
+
 ## Teacher Onboarding
 
 ### `POST /api/v1/principal/teachers/`
