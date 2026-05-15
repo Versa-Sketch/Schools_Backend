@@ -40,7 +40,6 @@ from .interactors import (
     DeleteSchoolLogoInteractor,
     UpdatePrincipalProfilePicInteractor,
     PrincipalStudentAttendanceInteractor,
-    AssignTeacherSectionsInteractor,
 )
 from .presenters.configuration import ConfigurationPresenter
 from .presenters.teachers import TeachersPresenter
@@ -107,16 +106,6 @@ def teacher_detail_view(request, teacher_id):
     return UpdateTeacherInteractor(
         storage=PrincipalDB(), presenter=TeachersPresenter(),
     ).update_teacher(user=request.user, teacher_id=teacher_id, data=request.data)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated, IsPrincipal | IsAdmin])
-@parser_classes([JSONParser])
-def assign_teacher_sections_view(request, teacher_id):
-    from .presenters.assign_sections import AssignSectionsPresenter
-    return AssignTeacherSectionsInteractor(
-        storage=PrincipalDB(), presenter=AssignSectionsPresenter(),
-    ).assign_sections(user=request.user, teacher_id=teacher_id, data=request.data)
 
 
 @api_view(['POST'])

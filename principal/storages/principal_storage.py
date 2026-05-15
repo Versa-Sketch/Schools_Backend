@@ -349,14 +349,6 @@ class PrincipalDB:
             TeacherBulkUploadRow.objects.filter(batch_id=batch_id).order_by('row_number')
         )
 
-    def assign_teacher_sections(self, teacher, subject, sections):
-        teacher.primary_subject = subject
-        teacher.save(update_fields=['primary_subject', 'updated_at'])
-        teacher.assigned_sections.set(sections)
-        return TeacherProfile.objects.select_related(
-            'user', 'primary_subject'
-        ).prefetch_related('assigned_sections__academic_class').get(id=teacher.id)
-
     # --- Announcements ---
 
     def create_announcement(self, school, author, title, body, audience, class_ids, section_ids, files, publish_now):

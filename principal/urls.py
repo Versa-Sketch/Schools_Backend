@@ -9,7 +9,6 @@ urlpatterns = [
     path('school/logo/', views.school_logo_view, name='principal-school-logo'),
     path('teachers/', views.teacher_list_view, name='principal-teacher-list'),
     path('teachers/<uuid:teacher_id>/', views.teacher_detail_view, name='principal-teacher-detail'),
-    path('teachers/<uuid:teacher_id>/assign-sections/', views.assign_teacher_sections_view, name='principal-assign-teacher-sections'),
     path('students/bulk-upload/', views.bulk_upload_view, name='principal-bulk-upload'),
     path('students/bulk-upload/<uuid:batch_id>/', views.bulk_upload_status_view, name='principal-bulk-upload-status'),
     path('teachers/bulk-upload/', views.teacher_bulk_upload_view, name='principal-teacher-bulk-upload'),
