@@ -232,6 +232,53 @@ Request:
 }
 ```
 
+### `POST /api/v1/principal/teachers/{id}/assign-sections/`
+
+`{id}` is the teacher profile UUID. This endpoint completely replaces the teacher's currently assigned sections and primary subject with the ones provided.
+
+Request:
+
+```json
+{
+  "subject_id": "44444444-4444-4444-4444-444444444444",
+  "section_ids": [
+    "33333333-3333-3333-3333-333333333333",
+    "33333333-3333-3333-3333-333333333334"
+  ]
+}
+```
+
+Response (`200 OK`):
+
+```json
+{
+  "message": "Sections and subject assigned successfully.",
+  "teacher_id": "55555555-5555-5555-5555-555555555555",
+  "primary_subject": {
+    "id": "44444444-4444-4444-4444-444444444444",
+    "name": "Mathematics"
+  },
+  "assigned_sections": [
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "class": "Class 5",
+      "name": "A"
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333334",
+      "class": "Class 5",
+      "name": "B"
+    }
+  ]
+}
+```
+
+Validation:
+
+- `subject_id` and `section_ids` are required.
+- All IDs must belong to the principal's school. If any ID is invalid or belongs to another school, a `400 ValidationException` is returned.
+- If the teacher doesn't exist, `404 NOT_FOUND` is returned.
+
 ## Student Onboarding
 
 ### `POST /api/v1/principal/students/bulk-upload/`
