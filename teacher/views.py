@@ -140,12 +140,13 @@ def study_material_view(request):
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def homework_view(request):
     if request.method == 'POST':
+        files = request.FILES.getlist('files') or request.FILES.getlist('attachments') or request.FILES.getlist('file')
         return CreateHomeworkInteractor(
             storage=TeacherDB(), presenter=HomeworkPresenter(),
         ).create_homework(
             user=request.user,
             data=request.data,
-            files=request.FILES.getlist('files'),
+            files=files,
         )
     return ListHomeworkInteractor(
         storage=TeacherDB(), presenter=HomeworkPresenter(),
