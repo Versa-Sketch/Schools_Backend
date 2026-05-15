@@ -148,6 +148,7 @@ Response for teacher:
     "role": "TEACHER",
     "school_id": "11111111-1111-1111-1111-111111111111",
     "school_name": "Green Valley School",
+    "school_logo_url": "https://bucket.s3.amazonaws.com/logos/school.png",
     "profile_pic_url": null
   },
   "profile": {
@@ -181,6 +182,7 @@ Response for student:
     "role": "STUDENT",
     "school_id": "11111111-1111-1111-1111-111111111111",
     "school_name": "Green Valley School",
+    "school_logo_url": "https://bucket.s3.amazonaws.com/logos/school.png",
     "profile_pic_url": null
   },
   "profile": {
@@ -213,6 +215,7 @@ Response for parent:
     "role": "PARENT",
     "school_id": "11111111-1111-1111-1111-111111111111",
     "school_name": "Green Valley School",
+    "school_logo_url": "https://bucket.s3.amazonaws.com/logos/school.png",
     "profile_pic_url": null
   },
   "profile": {
@@ -235,6 +238,7 @@ Response for parent:
 Response rules:
 
 - `profile_pic_url` is `null` until the user uploads a picture via their role-specific profile pic endpoint.
+- `school_logo_url` is `null` if the school has not uploaded a logo.
 - Principal includes principal profile and school.
 - Teacher includes assigned sections and class teacher sections.
 - Student includes student profile, class, section, roll number, admission number.

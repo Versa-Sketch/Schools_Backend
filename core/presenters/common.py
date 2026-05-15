@@ -18,6 +18,7 @@ def format_user(user, profile=None):
         'role': user.role,
         'school_id': getattr(profile, 'school_id', None),
         'school_name': profile.school.name if getattr(profile, 'school', None) else None,
+        'school_logo_url': profile.school.logo if getattr(profile, 'school', None) else None,
         'profile_pic_url': user.profile_pic or None,
     }
 

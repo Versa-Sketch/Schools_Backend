@@ -22,8 +22,8 @@ class CreateAttendanceSessionInteractor:
             raise ValidationException('section_id and date are required.')
         if slot not in ('MORNING', 'AFTERNOON'):
             raise ValidationException(constants.INVALID_ATTENDANCE_SLOT)
-        if not self.storage.is_section_accessible(teacher, section_id):
-            raise PermissionDeniedException(constants.SECTION_NOT_ASSIGNED)
+        if not self.storage.is_class_teacher(teacher, section_id):
+            raise PermissionDeniedException(constants.NOT_CLASS_TEACHER)
 
         section = self.storage.get_section_by_id(section_id, teacher.school_id)
         if section is None:
@@ -54,8 +54,8 @@ class MarkAttendanceInteractor:
             raise NotFoundException(constants.ATTENDANCE_SESSION_NOT_FOUND)
         if session.confirmed_at:
             raise ValidationException(constants.ATTENDANCE_ALREADY_CONFIRMED)
-        if not self.storage.is_section_accessible(teacher, session.section_id):
-            raise PermissionDeniedException(constants.SECTION_NOT_ASSIGNED)
+        if not self.storage.is_class_teacher(teacher, session.section_id):
+            raise PermissionDeniedException(constants.NOT_CLASS_TEACHER)
 
         records_data = data.get('records', [])
         for r in records_data:
@@ -90,8 +90,8 @@ class ConfirmAttendanceInteractor:
             raise NotFoundException(constants.ATTENDANCE_SESSION_NOT_FOUND)
         if session.confirmed_at:
             raise ValidationException(constants.ATTENDANCE_ALREADY_CONFIRMED)
-        if not self.storage.is_section_accessible(teacher, session.section_id):
-            raise PermissionDeniedException(constants.SECTION_NOT_ASSIGNED)
+        if not self.storage.is_class_teacher(teacher, session.section_id):
+            raise PermissionDeniedException(constants.NOT_CLASS_TEACHER)
 
         session = self.storage.confirm_attendance_session(session)
 
