@@ -786,7 +786,7 @@ class AnalyticsDB:
                 student__class_name__iexact=class_name,
                 student__section_name__iexact=section_name,
             )
-            .select_related('student', 'subject')
+            .select_related('student', 'subject', 'student__linked_user__studentprofile')
             .order_by('student__name', 'subject__subject_name')
         )
 

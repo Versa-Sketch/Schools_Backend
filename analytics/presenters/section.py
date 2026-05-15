@@ -15,12 +15,15 @@ class SectionPresenter:
         by_student  = defaultdict(dict)
         student_obj = {}
         for er in exam_results:
-            sid = str(er.student_id)
-            by_student[sid][er.subject.subject_name] = er
-            student_obj[sid] = er.student
+            analytics_sid = str(er.student_id)
+            linked = er.student.linked_user
+            real_id = str(linked.studentprofile.id) if linked and hasattr(linked, 'studentprofile') else analytics_sid
+            by_student[analytics_sid][er.subject.subject_name] = er
+            student_obj[analytics_sid] = (er.student, real_id)
 
         students = []
-        for sid, subj_map in by_student.items():
+        for analytics_sid, subj_map in by_student.items():
+            analytics_student, real_id = student_obj[analytics_sid]
             total_marks = sum(er.total_marks for er in subj_map.values())
             total_max   = sum(max_marks.get(s, 1) for s in subj_map)
             total_pct   = round((total_marks / total_max) * 100, 1) if total_max else 0
@@ -36,7 +39,7 @@ class SectionPresenter:
 
             # Subject-wise risk labels
             subject_risk = {
-                subj: (risk_map[(sid, subj)].risk_label if (sid, subj) in risk_map else 'SAFE')
+                subj: (risk_map[(analytics_sid, subj)].risk_label if (analytics_sid, subj) in risk_map else 'SAFE')
                 for subj in subj_map
             }
 
@@ -48,9 +51,9 @@ class SectionPresenter:
             )
 
             students.append({
-                'student_id':     sid,
-                'student_ref_id': student_obj[sid].student_ref_id,
-                'name':           student_obj[sid].name,
+                'student_id':     real_id,
+                'student_ref_id': analytics_student.student_ref_id,
+                'name':           analytics_student.name,
                 'subject_details': subject_details,
                 'total_pct':      total_pct,
                 'subject_risk':   subject_risk,
