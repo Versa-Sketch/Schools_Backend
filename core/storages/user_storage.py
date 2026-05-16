@@ -64,6 +64,10 @@ class UserDB:
 
         return getattr(user, profile_attribute, None)
 
+    def update_password(self, user, new_password):
+        user.set_password(new_password)
+        user.save()
+
     def update_user_profile_pic(self, user, url):
         user.profile_pic = url
         user.save(update_fields=['profile_pic'])

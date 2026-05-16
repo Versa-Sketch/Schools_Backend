@@ -129,6 +129,35 @@ Response:
 }
 ```
 
+### `POST /api/v1/auth/change-password/`
+
+Requires authentication. Allows any authenticated user to change their own password.
+
+Request:
+
+```json
+{
+  "current_password": "old-password",
+  "new_password": "new-password",
+  "confirm_password": "new-password"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "Password changed successfully."
+}
+```
+
+Validation:
+
+- All three fields are required. Missing any field returns `VALIDATION_ERROR`.
+- `new_password` and `confirm_password` must match. Returns `VALIDATION_ERROR` otherwise.
+- `current_password` must match the user's existing password. Returns `AUTHENTICATION_FAILED` otherwise.
+
 ## Current User And School
 
 ### `GET /api/v1/me/`

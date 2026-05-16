@@ -303,10 +303,11 @@ class PrincipalDB:
         name = row.get('name', '').strip()
         phone_number = row.get('phone_number', '').strip()
         username = row.get('username', '').strip()
-        password = row.get('password', '').strip()
 
-        if not all([name, phone_number, username, password]):
-            raise ValueError('Missing required fields.')
+        if not all([name, phone_number, username]):
+            raise ValueError('Missing required fields: name, phone_number, username.')
+
+        password = f"pass@{phone_number}"
 
         if User.objects.filter(username=username).exists():
             raise ValueError('Username already exists.')

@@ -19,6 +19,7 @@ from .interactors.lookup import (
 )
 from .interactors.calendar_events import CalendarEventListInteractor
 from .interactors.announcements import AnnouncementListInteractor, AnnouncementDetailInteractor
+from .interactors.change_password import ChangePasswordInteractor
 
 from .jwt_auth.jwt_tokens import UserAuthentication
 
@@ -30,6 +31,7 @@ from .presenters.school import SchoolPresenter
 from .presenters.lookup import LookupPresenter
 from .presenters.calendar_events import CalendarEventPresenter
 from .presenters.announcements import AnnouncementPresenter
+from .presenters.change_password import ChangePasswordPresenter
 
 from .storages.user_storage import UserDB
 from .storages.core_storage import CoreDB
@@ -166,6 +168,21 @@ def announcement_list_view(request):
         storage=CoreDB(),
         presenter=AnnouncementPresenter(),
     ).get_announcements(user=request.user, audience=audience, published_after=published_after)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([JSONParser])
+def change_password_view(request):
+    return ChangePasswordInteractor(
+        storage=UserDB(),
+        presenter=ChangePasswordPresenter(),
+    ).change_password(
+        user=request.user,
+        current_password=request.data.get('current_password'),
+        new_password=request.data.get('new_password'),
+        confirm_password=request.data.get('confirm_password'),
+    )
 
 
 @api_view(['GET'])

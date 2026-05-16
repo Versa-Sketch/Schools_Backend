@@ -175,9 +175,10 @@ Expected CSV Columns:
 - `name` (required)
 - `phone_number` (required)
 - `username` (required)
-- `password` (required)
 - `primary_subject_id` (optional, UUID)
 - `assigned_section_ids` (optional, comma-separated UUIDs)
+
+> **Note:** The `password` column is no longer required or used. Each teacher's password is auto-generated as `pass@{phone_number}` (e.g. `pass@9999999999`), consistent with student and parent accounts.
 
 Response (200 OK):
 
